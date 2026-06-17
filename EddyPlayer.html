@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#e94560">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>EddyPlayer</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #0c0c0f; color: #fff; overflow: hidden; height: 100vh; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e94560; border-radius: 4px; }
+.hidden { display: none !important; }
+:root { --accent: #e94560; }
+.channel-card:focus, .row-card:focus, .channel-row:focus, .module-header:focus, .cat-item:focus, .fav-header:focus, .view-btn:focus { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #0c0c0f 0%, #1a0a0e 50%, #0c0c0f 100%); display: flex; align-items: center; justify-content: center; z-index: 999; }
+.login-box { width: 400px; max-width: 90vw; }
+.login-box .logo { text-align: center; margin-bottom: 40px; }
+.login-box .logo-icon { width: 80px; height: 80px; background: linear-gradient(135deg, var(--accent), #c23152); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 36px; box-shadow: 0 8px 32px rgba(233,69,96,.3); }
+.login-box h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+.login-box h1 span { color: var(--accent); }
+.login-box p { color: #666; font-size: 14px; margin-top: 4px; }
+.login-input { width: 100%; padding: 14px 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; color: #fff; font-size: 15px; outline: none; transition: .2s; }
+.login-input:focus { border-color: var(--accent); background: rgba(233,69,96,.06); }
+.login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), #c23152); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: .2s; box-shadow: 0 4px 20px rgba(233,69,96,.3); }
+.login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(233,69,96,.4); }
+.login-btn:disabled { opacity: .5; cursor: not-allowed; }
+.login-error { color: #ff4757; text-align: center; margin-top: 12px; font-size: 14px; }
+
+.login-tabs { display: flex; margin-bottom: 18px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); }
+.login-tab { flex: 1; padding: 10px; background: transparent; border: none; color: #666; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+.login-tab.active { background: rgba(233,69,96,.15); color: var(--accent); }
+.login-tab:hover:not(.active) { color: #aaa; }
+.checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; color: #888; }
+.checkbox-row input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+.settings-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: rgba(255,255,255,.04); border-radius: 10px; padding: 4px; }
+.settings-tabs .st-tab { flex: 1; padding: 8px; border: none; background: transparent; color: #666; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 8px; transition: .15s; }
+.settings-tabs .st-tab.active { background: var(--accent); color: #fff; }
+.settings-tabs .st-tab:hover:not(.active) { color: #aaa; }
+
+.app { display: flex; height: 100vh; }
+.sidebar { width: 260px; background: #121216; border-right: 1px solid rgba(255,255,255,.04); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-brand { padding: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.04); }
+.sidebar-brand .badge { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), #c23152); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; }
+.sidebar-brand h2 { font-size: 16px; font-weight: 700; }
+.sidebar-user { padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 12px; }
+.sidebar-user .name { font-weight: 600; font-size: 13px; color: #fff; }
+.sidebar-user .expiry { color: #888; margin-top: 2px; }
+.sidebar-nav { flex: 1; padding: 8px; overflow-y: auto; }
+.module-header { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; font-size: 13px; color: #888; border-radius: 10px; transition: .15s; margin-bottom: 2px; }
+.module-header:hover { background: rgba(255,255,255,.04); color: #fff; }
+.module-header.active { background: rgba(233,69,96,.12); color: var(--accent); font-weight: 600; }
+.module-header .count { margin-left: auto; background: rgba(255,255,255,.06); padding: 1px 8px; border-radius: 6px; font-size: 11px; color: #666; }
+.module-header.active .count { background: rgba(233,69,96,.15); color: var(--accent); }
+.module-body { max-height: 0; overflow: hidden; transition: max-height .2s ease; }
+.module-body.open { max-height: 2000px; }
+.cat-item { padding: 7px 14px 7px 48px; font-size: 12px; color: #666; cursor: pointer; border-radius: 8px; margin: 1px 4px; transition: .1s; }
+.cat-item:hover { color: #aaa; background: rgba(255,255,255,.03); }
+.cat-item.active { color: var(--accent); background: rgba(233,69,96,.08); font-weight: 500; }
+.fav-header { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; font-size: 13px; color: #888; border-radius: 10px; transition: .15s; margin: 4px 0 2px; }
+.fav-header:hover { background: rgba(255,255,255,.04); color: #fff; }
+.fav-header.active { background: rgba(233,69,96,.12); color: var(--accent); font-weight: 600; }
+.fav-header .count { margin-left: auto; background: rgba(255,255,255,.06); padding: 1px 8px; border-radius: 6px; font-size: 11px; color: #666; }
+.quick-row { display: flex; align-items: center; gap: 4px; }
+.star-btn { background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; line-height: 1; border-radius: 4px; }
+.star-btn:focus { outline: 2px solid var(--accent); }
+.sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,.04); display: flex; gap: 6px; }
+.sidebar-footer button { flex: 1; padding: 7px; background: rgba(255,255,255,.04); border: none; border-radius: 8px; color: #888; font-size: 11px; cursor: pointer; transition: .15s; }
+.sidebar-footer button:hover { background: rgba(255,69,96,.1); color: var(--accent); }
+.sidebar-footer .icon-btn { font-size: 16px; }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar { padding: 14px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid rgba(255,255,255,.04); flex-wrap: wrap; }
+.search-wrap { flex: 1; max-width: 380px; position: relative; }
+.search-wrap input { width: 100%; padding: 9px 16px 9px 38px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.06); border-radius: 24px; color: #fff; font-size: 13px; outline: none; transition: .2s; }
+.search-wrap input:focus { border-color: var(--accent); }
+.search-wrap .icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #555; font-size: 14px; }
+.view-toggle { display: flex; gap: 3px; background: rgba(255,255,255,.04); padding: 3px; border-radius: 8px; }
+.view-toggle button { padding: 5px 12px; background: none; border: none; color: #666; font-size: 12px; cursor: pointer; border-radius: 6px; transition: .1s; }
+.view-toggle button.active { background: rgba(233,69,96,.2); color: var(--accent); }
+.btn-admin-login { background: none; border: none; color: rgba(255,255,255,.25); font-size: 14px; cursor: pointer; padding: 4px 6px; line-height: 1; opacity: .4; transition: .15s; }
+.btn-admin-login:hover { opacity: 1; color: rgba(255,255,255,.6); }
+.login-save-btn { width:100%; padding:7px; background:none; border:1px solid rgba(255,255,255,.08); border-radius:8px; color:rgba(255,255,255,.4); font-size:11px; cursor:pointer; transition:.15s; }
+.login-save-btn:hover { border-color:rgba(233,69,96,.3); color:var(--accent); }
+.content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+.network-banner { padding: 8px 20px; background: #c0392b; color: #fff; font-size: 12px; text-align: center; }
+
+.channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding-bottom: 24px; }
+.channel-card { background: rgba(255,255,255,.04); border-radius: 8px; overflow: hidden; cursor: pointer; transition: .25s; border: 1px solid transparent; position: relative; aspect-ratio: 2/3; }
+.channel-card:hover { transform: scale(1.04); border-color: rgba(233,69,96,.3); box-shadow: 0 12px 32px rgba(0,0,0,.5); z-index: 2; }
+.channel-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.channel-card .card-overlay { position: absolute; inset: 0; background: linear-gradient(transparent 55%, rgba(0,0,0,.85)); display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; opacity: 0; transition: .25s; }
+.channel-card:hover .card-overlay { opacity: 1; }
+.channel-card .card-overlay h3 { font-size: 13px; font-weight: 600; margin-bottom: 6px; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+.channel-card .card-overlay .rating { color: #f1c40f; font-size: 11px; margin-bottom: 6px; }
+.channel-card .fav-btn { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.5); border: none; color: #fff; font-size: 14px; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: .15s; z-index: 1; }
+.channel-card:hover .fav-btn { opacity: 1; }
+.channel-card .fav-btn.active { opacity: 1; color: #f1c40f; }
+.channel-card .epg { padding: 6px 10px; font-size: 10px; color: #aaa; background: rgba(0,0,0,.6); position: absolute; bottom: 0; left: 0; right: 0; z-index: 1; }
+.channel-card .epg .now { color: #4ecdc4; font-weight: 600; }
+.channel-card .epg .next { color: #666; margin-top: 1px; }
+
+.channel-list { display: flex; flex-direction: column; gap: 4px; }
+
+.row-view { padding-bottom: 24px; }
+.row-section { margin-bottom: 24px; }
+.row-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 10px; padding-left: 4px; }
+.row-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 4px 0 12px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.row-scroll::-webkit-scrollbar { height: 4px; }
+.row-card { flex: 0 0 160px; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; cursor: pointer; position: relative; scroll-snap-align: start; transition: .25s; border: 1px solid transparent; }
+.row-card:hover { transform: scale(1.06); border-color: rgba(233,69,96,.3); z-index: 2; }
+.row-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.row-card .card-overlay { position: absolute; inset: 0; background: linear-gradient(transparent 55%, rgba(0,0,0,.85)); display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; opacity: 0; transition: .25s; }
+.row-card:hover .card-overlay { opacity: 1; }
+.row-card .card-overlay h3 { font-size: 12px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+.row-card .card-overlay .rating { color: #f1c40f; font-size: 10px; margin-bottom: 4px; }
+.row-card .fav-btn { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.5); border: none; color: #fff; font-size: 12px; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: .15s; z-index: 1; }
+.row-card:hover .fav-btn { opacity: 1; }
+.row-card .fav-btn.active { opacity: 1; color: #f1c40f; }
+.channel-row { display: flex; align-items: center; gap: 14px; padding: 9px 14px; background: rgba(255,255,255,.03); border-radius: 10px; cursor: pointer; transition: .15s; position: relative; }
+.channel-row:hover { background: rgba(255,255,255,.06); }
+.channel-row img { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; }
+.channel-row .info { flex: 1; min-width: 0; }
+.channel-row .info h3 { font-size: 13px; font-weight: 500; }
+.channel-row .info span { font-size: 11px; color: #666; }
+.channel-row .info .epg { font-size: 11px; margin-top: 2px; }
+.channel-row .info .epg-now { font-size: 11px; color: #4ecdc4; font-weight: 500; margin-top: 1px; }
+.channel-row .info .epg-next { font-size: 10px; color: #555; margin-top: 1px; }
+.channel-row .fav-btn { background: none; border: none; color: #555; font-size: 14px; cursor: pointer; padding: 4px 8px; transition: .1s; }
+.channel-row .fav-btn.active { color: #f1c40f; }
+
+.player-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; cursor: default; overflow: hidden; }
+.player-top { padding: 12px 20px; display: flex; align-items: center; gap: 16px; background: linear-gradient(rgba(0,0,0,.8), transparent); pointer-events: auto; z-index: 2; position: relative; }
+.player-top h2 { font-size: 15px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-top button { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 8px 12px; }
+.player-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+.player-video-wrap video { width: 100%; height: 100%; object-fit: contain; }
+.player-epg { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 20px 12px; background: linear-gradient(transparent, rgba(0,0,0,.8)); z-index: 2; transition: opacity .4s; opacity: 0; pointer-events: none; }
+.player-epg.show { opacity: 1; }
+.player-epg .ch-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.player-epg .now { font-size: 13px; font-weight: 500; color: #4ecdc4; }
+.player-epg .next { font-size: 11px; color: #888; margin-top: 1px; }
+.player-epg .next span { color: #555; }
+.loading { text-align: center; padding: 40px; color: #555; font-size: 14px; }
+
+.main-body { flex: 1; display: flex; overflow: hidden; }
+.content { flex: 1; overflow-y: auto; padding: 20px 24px; min-width: 0; }
+.inline-player { width: 380px; background: #000; display: flex; flex-direction: column; flex-shrink: 0; border-left: 1px solid rgba(255,255,255,.08); }
+.inline-player.hidden { display: none; }
+.ip-top { padding: 8px 14px; display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.04); }
+.ip-top h2 { font-size: 13px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ip-top .ip-btns { display: flex; gap: 4px; }
+.ip-top .ip-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+.ip-top .ip-btn:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ip-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #000; min-height: 200px; }
+.ip-video-wrap video { width: 100%; height: 100%; object-fit: contain; max-height: 300px; }
+.ip-epg { padding: 8px 14px; background: rgba(0,0,0,.6); font-size: 11px; }
+.ip-epg .now { color: #4ecdc4; font-weight: 500; }
+.ip-epg .next { color: #888; margin-top: 1px; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal-box { background: #121216; border-radius: 16px; max-width: 650px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 24px; }
+.modal-box h2 { font-size: 18px; margin-bottom: 6px; }
+.modal-box .sub { color: #888; font-size: 12px; margin-bottom: 16px; }
+.modal-box .desc { color: #aaa; font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+.modal-box .meta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.modal-box .meta span { background: rgba(255,255,255,.06); padding: 4px 12px; border-radius: 20px; font-size: 11px; color: #888; }
+.modal-box .meta .star { color: #f1c40f; }
+.star-lg { font-size: 14px; }
+.modal-box .play-btn { display: inline-block; padding: 10px 24px; background: linear-gradient(135deg, var(--accent), #c23152); border: none; border-radius: 10px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: .2s; }
+.modal-box .play-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(233,69,96,.3); }
+.season-title { color: var(--accent); font-size: 13px; font-weight: 600; margin: 16px 0 8px; }
+.episode-item { display: flex; align-items: center; gap: 12px; padding: 7px 12px; border-radius: 8px; cursor: pointer; transition: .15s; }
+.episode-item:hover { background: rgba(255,255,255,.04); }
+.episode-item .num { color: #555; font-size: 11px; min-width: 24px; }
+.episode-item h4 { font-size: 13px; font-weight: 400; }
+.episode-item .info { color: #777; font-size: 11px; margin-left: auto; }
+.close-modal { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; float: right; opacity: .7; }
+.close-modal:hover { opacity: 1; }
+
+.row-count { margin-left: 8px; background: rgba(255,255,255,.06); padding: 1px 8px; border-radius: 6px; font-size: 11px; color: #666; vertical-align: middle; }
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.gap-8 { gap: 8px; }
+.gap-10 { gap: 10px; }
+.gap-16 { gap: 16px; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.text-center { text-align: center; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }
+.p-16 { padding: 16px; }
+.rounded-12 { border-radius: 12px; }
+.bg-card { background: rgba(255,255,255,.04); }
+.text-muted { color: #888; }
+.btn-secondary { background: rgba(255,255,255,.08); box-shadow: none !important; }
+.btn-secondary:hover { background: rgba(255,69,96,.1) !important; }
+.quick-btn { flex: 0; padding: 6px 12px; font-size: 11px; }
+.modal-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.modal-cover { width: 160px; height: 220px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+.modal-cover-sm { width: 120px; height: 170px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+.modal-info { flex: 1; min-width: 200px; }
+.info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.info-row:last-of-type { border-bottom: none; }
+.hamburger { display: none; background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px; }
+
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; z-index: 2000; opacity: 0; transition: opacity .3s; pointer-events: none; }
+@media (max-width: 768px) {
+  .hamburger { display: block; }
+  .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; width: 260px; z-index: 100; transition: left .25s; background: #121216; }
+  .sidebar.open { left: 0; }
+  .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 99; display: none; }
+  .sidebar-overlay.show { display: block; }
+  .channel-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .topbar { padding: 10px 14px; gap: 10px; }
+  .content { padding: 14px; }
+  .row-card { flex: 0 0 130px; }
+  .inline-player { width: 100%; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; max-height: 50vh; border-left: none; border-top: 1px solid rgba(255,255,255,.08); }
+  .ip-video-wrap video { max-height: 200px; }
+}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="logo">
+      <div class="logo-icon">▶</div>
+      <h1>Eddy<span>Player</span></h1>
+      <p>Entre com seus dados de acesso</p>
+    </div>
+    <div class="flex flex-col gap-10">
+      <div class="login-tabs">
+        <button class="login-tab active" data-mode="xtream" onclick="setLoginMode('xtream')">Servidor Xtream</button>
+        <button class="login-tab" data-mode="m3u" onclick="setLoginMode('m3u')">Lista M3U</button>
+      </div>
+      <select class="login-input" id="serverList" onchange="loadServer()">
+        <option value="">-- Servidores salvos --</option>
+      </select>
+      <div id="xtreamFields">
+        <input class="login-input" id="serverName" placeholder="Nome (ex: Minha TV)">
+        <input class="login-input" id="serverUrl" placeholder="URL do servidor" oninput="checkSaveVisibility()">
+        <input class="login-input" id="userName" placeholder="Usuário" oninput="checkSaveVisibility()">
+        <input class="login-input" id="userPass" type="password" placeholder="Senha" oninput="checkSaveVisibility()">
+        <label class="checkbox-row"><input type="checkbox" id="xtreamCorsProxy"> Usar proxy CORS (se não conectar)</label>
+      </div>
+      <div id="m3uFields" class="hidden">
+        <input class="login-input" id="m3uName" placeholder="Nome (ex: Minha Lista)">
+        <input class="login-input" id="m3uUrl" placeholder="URL da playlist M3U" oninput="checkSaveVisibility()">
+        <input class="login-input" id="m3uEpgUrl" placeholder="URL do EPG XMLTV (opcional)">
+        <label class="checkbox-row"><input type="checkbox" id="m3uCorsProxy"> Usar proxy CORS (se a playlist não carregar)</label>
+      </div>
+      <div class="flex gap-8">
+        <button class="login-btn flex-1" id="connectBtn" onclick="handleConnect()">CONECTAR</button>
+        <button class="btn-admin-login" onclick="showAdminLogin()" title="Admin">🔧</button>
+      </div>
+      <div id="saveBar" style="display:none;margin-top:4px"><button class="login-save-btn" onclick="saveServer();this.parentElement.style.display='none'">💾 Salvar servidor</button></div>
+      <div class="flex gap-8 flex-wrap" id="quickServers"></div>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="app hidden" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><div class="badge">E</div><h2>EddyPlayer</h2></div>
+    <div class="sidebar-user"><div class="name" id="sideName"></div><div class="expiry" id="sideExpiry"></div></div>
+    <nav class="sidebar-nav" id="sideNav"></nav>
+    <div class="sidebar-footer"><button onclick="showSettings()" title="Configurações" class="flex-1 icon-btn">⚙</button><button onclick="logout()" class="flex-1">Sair</button></div>
+  </aside>
+  <div class="main">
+    <div id="networkBanner" class="network-banner hidden">Sem conexão com a internet</div>
+    <div class="topbar">
+      <button class="hamburger" id="hamburgerBtn" tabindex="0" onclick="toggleSidebar()">☰</button>
+      <div class="search-wrap"><span class="icon">🔍</span><input id="searchInput" placeholder="Buscar..." onkeydown="if(event.key==='Enter')searchNow()"></div>
+      <div class="view-toggle">
+        <button class="active view-btn" tabindex="0" onclick="setView('grid')" id="vGrid">Grid</button>
+        <button class="view-btn" tabindex="0" onclick="setView('list')" id="vList">Lista</button>
+        <button class="view-btn" tabindex="0" onclick="setView('row')" id="vRow">Fileiras</button>
+        <button class="view-btn" tabindex="0" onclick="toggleSplit()" id="vSplit" title="Split view">⊞</button>
+      </div>
+    </div>
+    <div class="main-body" id="mainBody">
+      <div class="content" id="contentArea"><div id="inner"></div></div>
+      <div class="inline-player hidden" id="inlinePlayer">
+        <div class="ip-top"><h2 id="ipTitle"></h2><div class="ip-btns"><button class="ip-btn" id="ipMaxBtn" onclick="maximizeInlinePlayer()" title="Maximizar">⛶</button><button class="ip-btn" onclick="closeInlinePlayer()">✕</button></div></div>
+        <div class="ip-video-wrap"><video id="ipVideo" controls tabindex="0"></video></div>
+        <div class="ip-epg" id="ipEpg"><div class="now" id="ipNow"></div><div class="next" id="ipNext"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="player-overlay hidden" id="playerOverlay">
+  <div class="player-top">
+    <button type="button" id="closePlayerBtn">←</button>
+    <h2 id="playerTitle"></h2>
+  </div>
+  <div class="player-video-wrap" id="playerVideoWrap">
+    <video id="playerVideo" controls></video>
+  </div>
+  <div class="player-epg" id="playerEpg">
+    <div class="ch-name" id="pepgName"></div>
+    <div class="now" id="pepgNow"></div>
+    <div class="next"><span>A seguir:</span> <span id="pepgNext"></span></div>
+  </div>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// ── State ──
+let srv = '', user = '', pass = '', info = null;
+let cats = {}, streams = {}, series = [];
+let type = 'live', view = localStorage.getItem('zyx_view') || 'grid', catId = null, hls = null, showingFavs = false;
+let wakeLock = null;
+let loginMode = 'xtream', m3uEpgUrl = '';
+const CACHE = {}, EPG_CACHE = {};
+const MODS = [
+  { k: 'live', i: '📡', l: 'Ao Vivo' },
+  { k: 'movie', i: '🎬', l: 'Filmes' },
+  { k: 'series', i: '📺', l: 'Séries' },
+];
+const APP_VERSION = '1.0.0';
+const $ = s => document.getElementById(s);
+const normalizeStr = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function searchNow() { render(); }
+function toggleSidebar() { $('sidebar').classList.toggle('open'); $('sidebarOverlay').classList.toggle('show'); }
+function closeSidebar() { if (window.innerWidth <= 768) { $('sidebar').classList.remove('open'); $('sidebarOverlay').classList.remove('show'); } }
+function escapeHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function showToast(msg) { const e=document.createElement('div'); e.className='toast'; e.textContent=msg; document.body.appendChild(e); requestAnimationFrame(()=>e.style.opacity='1'); setTimeout(()=>{e.style.opacity='0';setTimeout(()=>e.remove(),300)},2500); }
+
+const PROXIES = [
+  url => `https://corsproxy.org/${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => url,
+];
+let proxyIndex = 0;
+function useProxy(url) {
+  if (!$('xtreamCorsProxy')?.checked) return url;
+  return PROXIES[proxyIndex](url);
+}
+function tryNextProxy() {
+  if (proxyIndex < PROXIES.length - 1) { proxyIndex++; return true; }
+  return false;
+}
+function resetProxy() { proxyIndex = 0; }
+function useNativePlayer() {
+  const n = localStorage.getItem('zyx_native_player');
+  if (n === '1') return true; if (n === '0') return false;
+  if ((window.Capacitor || window.top?.Capacitor)?.isNative) return true;
+  return /Android\s*TV|Web0S|SmartTV|Tizen|OLED|LG\s*TV|BRAVIA|Hisense/i.test(navigator.userAgent);
+}
+const _Cap = () => window.Capacitor || window.top?.Capacitor;
+async function api(path, q = '') {
+  const url = `${srv}/player_api.php?username=${user}&password=${pass}${q ? '&'+q : ''}${path ? '&action='+path : ''}`;
+  const Cap = _Cap();
+  if (Cap?.isNative && Cap.Plugins?.CapacitorHttp) {
+    try {
+      const res = await Promise.race([
+        Cap.Plugins.CapacitorHttp.get({ url, connectTimeout: 15000 }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout')), 20000))
+      ]);
+      if (res.status >= 400) throw new Error('HTTP ' + res.status);
+      return res.data;
+    } catch(e) { /* fall through to proxy fetch */ }
+  }
+  for (let i = 0; i < PROXIES.length; i++) {
+    const proxyUrl = $('xtreamCorsProxy')?.checked ? PROXIES[i](url) : url;
+    try { return await fetch(proxyUrl).then(r => r.json()); }
+    catch(e) { if (i === PROXIES.length - 1) throw e; }
+  }
+}
+
+// ── Built-in servers (edit directly here, survive cache clear) ──
+const BUILTIN_SERVERS = [
+  // { name: 'Meu Servidor', url: 'http://exemplo.com', user: 'usuario', pass: 'senha' },
+];
+
+// ── Favorites ──
+function getFavs() {
+  try { return JSON.parse(localStorage.getItem('zyx_favs') || '[]'); } catch { return []; }
+}
+function saveFavs(f) { localStorage.setItem('zyx_favs', JSON.stringify(f)); }
+function isFav(type, id) { return getFavs().some(f => f.t === type && f.id === id); }
+function toggleFav(type, id) {
+  let f = getFavs();
+  const i = f.findIndex(x => x.t === type && x.id === id);
+  if (i >= 0) { f.splice(i, 1); showToast('⭐ Removido dos favoritos'); } else { f.push({ t: type, id }); showToast('⭐ Adicionado aos favoritos'); }
+  saveFavs(f);
+  if (showingFavs) render(); else updateFavButtons();
+}
+
+// ── Screen Wake Lock ──
+async function requestWakeLock() {
+  try {
+    if (wakeLock) wakeLock.release();
+    if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+  } catch(e) { console.warn('WakeLock failed:', e); }
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+// ── Network ──
+window.addEventListener('online', () => { $('networkBanner').classList.add('hidden'); });
+window.addEventListener('offline', () => { $('networkBanner').classList.remove('hidden'); });
+
+// ── Server management ──
+function getServers() {
+  try { return JSON.parse(localStorage.getItem('zyx_servers') || '[]'); } catch { return []; }
+}
+function saveServers(list) { localStorage.setItem('zyx_servers', JSON.stringify(list)); }
+
+function renderServerList() {
+  const saved = getServers();
+  const sel = $('serverList');
+  const q = $('quickServers');
+  sel.innerHTML = saved.length ? '<option value="">-- Servidores salvos --</option>' : '<option value="">-- Servidores --</option>';
+  q.innerHTML = '';
+  // Built-in first
+  BUILTIN_SERVERS.forEach((sv, i) => {
+    const idx = -(i + 1);
+    const label = (sv.type === 'm3u' ? '📋 ' : '🔒 ') + (sv.name || sv.url);
+    sel.innerHTML += `<option value="${idx}">${label}</option>`;
+    if (sv.type === 'm3u' || (sv.user && sv.pass)) {
+      q.innerHTML += `<button class="login-btn btn-secondary quick-btn" onclick="quickConnect(${idx})">${sv.name || sv.url.replace(/https?:\/\//,'')}</button>`;
+    }
+  });
+  const sorted = [...saved].sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
+  sorted.forEach((sv, i) => {
+    const origIdx = saved.indexOf(sv);
+    const star = sv.fav ? '⭐ ' : '';
+    const label = star + (sv.type === 'm3u' ? '📋 ' : '📡 ') + (sv.name || sv.url);
+    sel.innerHTML += `<option value="${origIdx}">${label}</option>`;
+    if (sv.type === 'm3u' || (sv.user && sv.pass)) {
+      q.innerHTML += `<div class="quick-row"><button class="star-btn" onclick="event.stopPropagation();toggleFavServer(${origIdx})">${sv.fav?'⭐':'☆'}</button><button class="login-btn btn-secondary quick-btn flex-1" onclick="quickConnect(${origIdx})">${sv.name || sv.url.replace(/https?:\/\//,'')}</button></div>`;
+    }
+  });
+  const last = localStorage.getItem('zyx_last');
+  if (last) {
+    const idx = saved.findIndex(s => s.url === last);
+    if (idx >= 0) sel.value = idx;
+  }
+}
+
+function loadServer() {
+  const sel = $('serverList');
+  const idx = parseInt(sel.value);
+  if (isNaN(idx)) return;
+  // Negative index = built-in server
+  if (idx < 0) {
+    const sv = BUILTIN_SERVERS[-(idx + 1)];
+    if (!sv) return;
+    $('serverName').value = sv.name || '';
+    $('serverUrl').value = sv.url;
+    $('userName').value = sv.user || '';
+    $('userPass').value = sv.pass || '';
+    checkSaveVisibility();
+    return;
+  }
+  const list = getServers();
+  const sv = list[idx];
+  if (!sv) return;
+  if (sv.type === 'm3u') {
+    setLoginMode('m3u');
+    $('m3uName').value = sv.name || '';
+    $('m3uUrl').value = sv.url || '';
+    $('m3uEpgUrl').value = sv.epgUrl || '';
+  } else {
+    setLoginMode('xtream');
+    $('serverName').value = sv.name || '';
+    $('serverUrl').value = sv.url;
+    $('userName').value = sv.user || '';
+    $('userPass').value = sv.pass || '';
+    checkSaveVisibility();
+  }
+}
+
+function saveServer() {
+  if (loginMode === 'm3u') {
+    const name = $('m3uName').value.trim();
+    const url = $('m3uUrl').value.trim();
+    const epgUrl = $('m3uEpgUrl').value.trim();
+    if (!url) return;
+    let list = getServers();
+    const finalName = name || url.replace(/https?:\/\//,'').split('/')[0];
+    const idx = list.findIndex(s => s.url === url && s.type === 'm3u');
+    if (idx >= 0) list[idx] = { name: finalName, url, epgUrl, type: 'm3u' };
+    else list.push({ name: finalName, url, epgUrl, type: 'm3u' });
+    saveServers(list);
+    renderServerList();
+    $('serverList').value = list.findIndex(s => s.url === url && s.type === 'm3u');
+  } else {
+    const name = $('serverName').value.trim();
+    const url = $('serverUrl').value.trim();
+    const u = $('userName').value.trim();
+    const p = $('userPass').value.trim();
+    if (!url) return;
+    let list = getServers();
+    const finalName = name || url.replace(/https?:\/\//,'').split('/')[0];
+    const idx = list.findIndex(s => s.url === url && s.user === u);
+    if (idx >= 0) list[idx] = { name: finalName, url, user: u, pass: p };
+    else list.push({ name: finalName, url, user: u, pass: p });
+    saveServers(list);
+    renderServerList();
+    $('serverList').value = list.findIndex(s => s.url === url && s.user === u);
+  }
+}
+
+function delServer() {
+  const sel = $('serverList');
+  const idx = parseInt(sel.value);
+  if (isNaN(idx) || idx < 0) return;
+  if (!confirm('Remover servidor?')) return;
+  let list = getServers();
+  list.splice(idx, 1);
+  saveServers(list);
+  renderServerList();
+  sel.value = '';
+}
+
+function quickConnect(idx) {
+  let sv;
+  if (idx < 0) {
+    sv = BUILTIN_SERVERS[-(idx + 1)];
+    if (!sv) return;
+  } else {
+    const list = getServers();
+    sv = list[idx];
+    if (!sv) return;
+  }
+  if (sv.type === 'm3u') {
+    setLoginMode('m3u');
+    $('m3uName').value = sv.name || '';
+    $('m3uUrl').value = sv.url || '';
+    $('m3uEpgUrl').value = sv.epgUrl || '';
+    connectM3U();
+  } else {
+    setLoginMode('xtream');
+    $('serverUrl').value = sv.url;
+    $('userName').value = sv.user;
+    $('userPass').value = sv.pass;
+    $('serverName').value = sv.name || '';
+    connect();
+  }
+}
+
+renderServerList();
+checkSaveVisibility();
+// Auto-check CORS proxy if served over HTTPS (GitHub Pages)
+if (location.protocol === 'https:') {
+  const cb = $('xtreamCorsProxy');
+  if (cb) cb.checked = true;
+}
+
+function checkSaveVisibility() {
+  const bar = $('saveBar');
+  if (!bar) return;
+  if (loginMode === 'm3u') {
+    bar.style.display = $('m3uUrl').value.trim() ? '' : 'none';
+  } else {
+    bar.style.display = ($('serverUrl').value.trim() && $('userName').value.trim() && $('userPass').value.trim()) ? '' : 'none';
+  }
+}
+function setLoginMode(mode) {
+  loginMode = mode;
+  document.querySelectorAll('.login-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  $('xtreamFields').classList.toggle('hidden', mode !== 'xtream');
+  $('m3uFields').classList.toggle('hidden', mode !== 'm3u');
+  checkSaveVisibility();
+}
+
+function handleConnect() {
+  if (loginMode === 'm3u') connectM3U();
+  else connect();
+}
+
+function showAdminLogin() {
+  const existing = document.getElementById('adminModal');
+  if (existing) existing.remove();
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.id = 'adminModal';
+  bd.onclick = e => { if (e.target === bd) bd.remove(); };
+  bd.innerHTML = `<div class="modal-box" style="max-width:320px;text-align:center">
+    <h2 class="mb-16">🔧 Administrador</h2>
+    <input type="password" id="adminPassInput" class="login-input" placeholder="Senha" style="text-align:center;font-size:20px;letter-spacing:4px" onkeydown="if(event.key==='Enter')checkAdminPass()">
+    <div class="login-error" id="adminPassError"></div>
+    <div class="flex gap-8 mt-16">
+      <button class="login-btn flex-1" onclick="checkAdminPass()">OK</button>
+      <button class="login-btn btn-secondary flex-1" onclick="document.getElementById('adminModal')?.remove()">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(bd);
+  setTimeout(() => $('adminPassInput')?.focus(), 100);
+}
+function checkAdminPass() {
+  const input = $('adminPassInput'), err = $('adminPassError');
+  if (!input || !err) return;
+  if (input.value === getAdminPass()) {
+    $('adminModal')?.remove();
+    showAdminPanel();
+  } else {
+    err.textContent = 'Senha incorreta'; input.value = ''; input.focus();
+  }
+}
+function showAdminPanel() {
+  const rm = document.getElementById('adminPanelModal');
+  if (rm) rm.remove();
+  function renderServers() {
+    const bd = document.getElementById('adminPanelModal');
+    if (!bd) return;
+    const list = getServers();
+    bd.innerHTML = `<div class="modal-box" style="max-width:420px">
+      <button class="close-modal" onclick="this.closest('.modal-backdrop').remove()">✕</button>
+      <h2 class="mb-16">🔧 Gerenciar Servidores</h2>
+      ${list.length ? list.map((sv,i) => `<div style="display:flex;align-items:center;gap:6px;padding:8px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:6px${sv.fav?';border:1px solid rgba(233,69,96,.3)':''}"><button class="login-btn btn-secondary" style="padding:2px 6px;font-size:14px;line-height:1" onclick="adminToggleFav(${i})" title="Favorito">${sv.fav?'⭐':'☆'}</button><div style="flex:1;min-width:0"><div style="font-size:13px">${sv.name||sv.url}</div><div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sv.url}${sv.type==='m3u'?' (M3U)':''}</div></div><button class="login-btn btn-secondary" style="padding:2px 8px;font-size:12px" onclick="if(confirm('Remover?')){let l=getServers();l.splice(${i},1);saveServers(l);window.renderServers()}">✕</button></div>`).join('') : '<div class="text-muted mb-12">Nenhum servidor cadastrado</div>'}
+      <div style="display:flex;gap:8px;margin-top:8px"><input class="login-input" id="admName" placeholder="Nome" style="flex:1"><input class="login-input" id="admUrl" placeholder="URL do servidor" style="flex:2"></div>
+      <div style="display:flex;gap:8px;margin-top:8px"><input class="login-input" id="admUser" placeholder="Usuário (opcional)" style="flex:1"><input class="login-input" id="admPass" placeholder="Senha (opcional)" style="flex:1"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="login-btn flex-1" onclick="adminAddXtream()">+ Xtream</button>
+        <button class="login-btn btn-secondary flex-1" onclick="adminAddM3U()">+ M3U</button>
+      </div>
+      <div class="mt-16 bg-card rounded-12 p-16" style="background:rgba(255,255,255,.03)">
+        <div class="text-muted mb-8" style="font-size:11px">🔑 Senha de administrador (deixe vazio p/ voltar ao padrão)</div>
+        <div class="flex gap-8">
+          <input type="text" id="adminNewPass" class="login-input" placeholder="Nova senha admin" style="font-size:13px" value="${localStorage.getItem('zyx_admin_pass')||''}">
+          <button class="login-btn btn-secondary" style="font-size:12px;white-space:nowrap" onclick="const v=$('adminNewPass').value.trim();if(v&&v.length<4){showToast('Mínimo 4 caracteres')}else{setAdminPass(v||'');showToast(v?'Senha definida':'Senha restaurada p/ padrão');window.renderServers()}">Salvar</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="login-btn btn-secondary flex-1" onclick="this.closest('.modal-backdrop').remove()">Fechar</button>
+        <button class="login-btn btn-secondary" style="color:#ff4757" onclick="if(confirm('Resetar TODOS os dados?')){localStorage.clear();sessionStorage.clear();location.reload()}">Resetar</button>
+      </div>
+    </div>`;
+  }
+  window.renderServers = renderServers;
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.id = 'adminPanelModal';
+  bd.onclick = e => { if (e.target === bd) bd.remove(); };
+  document.body.appendChild(bd);
+  renderServers();
+}
+
+function adminAddXtream() {
+  const n = $('admName').value.trim(), u = $('admUrl').value.trim(), z = $('admUser').value.trim(), p = $('admPass').value.trim();
+  if (!u) return;
+  let l = getServers();
+  l.push({ name: n || u.replace(/https?:\/\//,'').split('/')[0], url: u, user: z, pass: p, fav: false });
+  saveServers(l);
+  $('admName').value = ''; $('admUrl').value = ''; $('admUser').value = ''; $('admPass').value = '';
+  renderServerList();
+  window.renderServers();
+}
+function adminAddM3U() {
+  const n = $('admName').value.trim(), u = $('admUrl').value.trim();
+  if (!u) return;
+  let l = getServers();
+  l.push({ name: n || u.replace(/https?:\/\//,'').split('/')[0], url: u, epgUrl: '', type: 'm3u', fav: false });
+  saveServers(l);
+  $('admName').value = ''; $('admUrl').value = '';
+  renderServerList();
+  window.renderServers();
+}
+function adminToggleFav(i) {
+  let l = getServers();
+  if (l[i]) { l[i].fav = !l[i].fav; saveServers(l); renderServerList(); window.renderServers(); }
+}
+
+const CORSPROXY = 'https://corsproxy.org/';
+
+// ── Helpers ──
+function formatExpDate(d) {
+  if (!d || d === '0000-00-00' || d === '0') return 'Nunca';
+  const n = parseInt(d);
+  if (!isNaN(n) && n > 100000) {
+    const dt = new Date(n * 1000);
+    if (dt.getFullYear() > 2000 && dt.getFullYear() < 2100) return dt.toLocaleDateString('pt-BR');
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
+    const dt = new Date(d);
+    if (!isNaN(dt)) return dt.toLocaleDateString('pt-BR');
+  }
+  return d;
+}
+
+function getPin() { return localStorage.getItem('zyx_pin') || ''; }
+function setPin(p) { localStorage.setItem('zyx_pin', p); }
+function getAdminPass() {
+  const c = localStorage.getItem('zyx_admin_pass');
+  if (c) return c;
+  const d = new Date();
+  return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0');
+}
+function setAdminPass(p) { localStorage.setItem('zyx_admin_pass', p); }
+function getAdultCats() { try { return JSON.parse(localStorage.getItem('zyx_adult_cats') || '[]'); } catch { return []; } }
+function setAdultCats(l) { localStorage.setItem('zyx_adult_cats', JSON.stringify(l)); }
+function getHiddenCats() { try { return JSON.parse(localStorage.getItem('zyx_hidden_cats') || '[]'); } catch { return []; } }
+function setHiddenCats(l) { localStorage.setItem('zyx_hidden_cats', JSON.stringify(l)); }
+function isAdultContent(s) {
+  const adult = getAdultCats();
+  if (!adult.length || !s) return false;
+  if (adult.some(a => a.id == s.category_id || a.name === s.category_name)) return true;
+  const allCats = [...(cats.live||[]), ...(cats.movie||[])];
+  const cat = allCats.find(c => c.category_id == s.category_id);
+  if (cat && adult.some(a => a.id == cat.category_id || a.name === cat.category_name)) return true;
+  return false;
+}
+function isHiddenContent(s) {
+  const hidden = getHiddenCats();
+  if (!hidden.length || !s) return false;
+  if (hidden.some(h => h.id == s.category_id || h.name === s.category_name)) return true;
+  const allCats = [...(cats.live||[]), ...(cats.movie||[])];
+  const cat = allCats.find(c => c.category_id == s.category_id);
+  if (cat && hidden.some(h => h.id == cat.category_id || h.name === cat.category_name)) return true;
+  return false;
+}
+function autoDetectAdultCats() {
+  const adult = getAdultCats();
+  const keywords = ['adult','xxx','18+','eroti','sex','porn','onlyfans','conteúdo adulto','conteudo adulto','+18','18 anos','maior','adultos','erótico','erotico','sensual','nude','nudez','clube do sexo'];
+  const allCats = [...(cats.live||[]), ...(cats.movie||[])];
+  let changed = false;
+  allCats.forEach(c => {
+    const name = (c.category_name || '').toLowerCase();
+    if (keywords.some(k => name.includes(k)) && !adult.some(a => a.id == c.category_id || a.name === c.category_name)) {
+      adult.push({ id: c.category_id, name: c.category_name });
+      changed = true;
+    }
+  });
+  if (changed) setAdultCats(adult);
+  return adult;
+}
+
+let pinPromptCallback = null;
+function showPinPrompt(cb) {
+  pinPromptCallback = cb;
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.id = 'pinModal';
+  bd.onclick = e => { if (e.target === bd) { bd.remove(); pinPromptCallback = null; } };
+  bd.innerHTML = `<div class="modal-box" style="max-width:320px;text-align:center">
+    <h2 class="mb-16">🔒 Controle Parental</h2>
+    <p class="text-muted mb-16">Digite o PIN para acessar este conteúdo</p>
+    <input type="password" id="pinInput" class="login-input" placeholder="PIN" maxlength="4" style="text-align:center;font-size:24px;letter-spacing:8px" inputmode="numeric" pattern="[0-9]*" onkeydown="if(event.key==='Enter')verifyPin()">
+    <div class="login-error" id="pinError"></div>
+    <div class="flex gap-8 mt-16">
+      <button class="login-btn flex-1" onclick="verifyPin()">OK</button>
+      <button class="login-btn btn-secondary flex-1" onclick="document.getElementById('pinModal')?.remove();pinPromptCallback=null">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(bd);
+  setTimeout(() => $('pinInput')?.focus(), 100);
+}
+function verifyPin() {
+  const input = $('pinInput'), err = $('pinError');
+  if (!input || !err) return;
+  if (input.value === getPin()) {
+    sessionStorage.setItem('pin_ok', '1');
+    $('pinModal')?.remove();
+    if (pinPromptCallback) { const c = pinPromptCallback; pinPromptCallback = null; c(); }
+  } else {
+    err.textContent = 'PIN incorreto'; input.value = ''; input.focus();
+  }
+}
+
+function parseM3U(text) {
+  const lines = text.split('\n');
+  const live = [], movie = [];
+  let current = null;
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line || line === '#EXTM3U') continue;
+    if (line.startsWith('#EXTINF:')) {
+      if (current) (current.stream_type === 'movie' ? movie : live).push(current);
+      const idx = line.indexOf(',');
+      if (idx < 0) continue;
+      const before = line.substring(9, idx);
+      const name = line.substring(idx + 1).trim();
+      current = {
+        name, stream_id: 'm3u_' + Math.random().toString(36).slice(2,10),
+        stream_icon: '', epg_channel_id: '', category_name: 'General',
+        container_extension: '', stream_type: 'live', rating: 0, stream_url: '',
+      };
+      const ga = (key) => { const r = new RegExp(key+'="([^"]*)"'); const m = before.match(r); return m ? m[1] : ''; };
+      const tvgId = ga('tvg-id'), tvgLogo = ga('tvg-logo'), tvgName = ga('tvg-name'), grp = ga('group-title'), typ = ga('type');
+      if (tvgId) current.epg_channel_id = tvgId;
+      if (tvgLogo) current.stream_icon = tvgLogo;
+      if (tvgName) current.name = tvgName;
+      if (grp) current.category_name = grp;
+      if (typ === 'movie') current.stream_type = 'movie';
+    } else if (line.startsWith('http://') || line.startsWith('https://')) {
+      if (current) {
+        current.stream_url = line;
+        const em = line.match(/\.(\w+)(?:\?|$)/);
+        if (em) current.container_extension = em[1];
+      }
+    }
+  }
+  if (current) (current.stream_type === 'movie' ? movie : live).push(current);
+  return { live, movie };
+}
+
+async function connectM3U() {
+  const m3uUrl = $('m3uUrl').value.trim();
+  const epgUrl = $('m3uEpgUrl').value.trim();
+  const name = $('m3uName').value.trim();
+  if (!m3uUrl) { $('loginError').textContent = 'URL da playlist é obrigatória'; return; }
+  $('loginError').textContent = '';
+  $('connectBtn').textContent = 'CARREGANDO...';
+  $('connectBtn').disabled = true;
+  try {
+    m3uEpgUrl = epgUrl;
+    loginMode = 'm3u';
+    srv = m3uUrl.replace(/\/+$/, '');
+    user = ''; pass = '';
+    const useProxy = $('m3uCorsProxy').checked;
+    const fetchUrl = useProxy ? CORSPROXY + encodeURIComponent(m3uUrl) : m3uUrl;
+    const res = await fetch(fetchUrl);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const parsed = parseM3U(text);
+    streams = { live: parsed.live, movie: parsed.movie };
+    series = [];
+    // Build categories from group-title
+    cats = { live: [], movie: [], series: [] };
+    const buildCats = (list, type) => {
+      const seen = {};
+      list.forEach(s => {
+        if (!seen[s.category_name]) {
+          seen[s.category_name] = true;
+          cats[type].push({ category_id: 'm3u_' + s.category_name.replace(/\s+/g,'_'), category_name: s.category_name });
+        }
+      });
+    };
+    buildCats(parsed.live, 'live');
+    buildCats(parsed.movie, 'movie');
+    const sortCats = arr => arr.sort((a,b) => (a.category_name||'').localeCompare(b.category_name||''));
+    sortCats(cats.live); sortCats(cats.movie);
+    info = { user_info: { username: name || 'M3U', exp_date: '0000-00-00' } };
+    // Auto-save M3U server
+    let list = getServers();
+    const exists = list.findIndex(s => s.url === m3uUrl && s.type === 'm3u');
+    if (exists < 0) {
+      list.push({ name: name || m3uUrl.replace(/https?:\/\//,'').split('/')[0], url: m3uUrl, epgUrl, type: 'm3u', fav: false });
+      saveServers(list);
+      renderServerList();
+    } else {
+      list[exists] = { ...list[exists], epgUrl };
+      saveServers(list);
+    }
+    $('loginScreen').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    $('sideName').textContent = info.user_info.username;
+    $('sideExpiry').textContent = 'Playlist M3U';
+    $('vGrid').className = view==='grid'?'active':'';
+    $('vList').className = view==='list'?'active':'';
+    $('vRow').className = view==='row'?'active':'';
+    if (splitMode) $('vSplit').classList.add('active');
+    loadEPG();
+    buildNav();
+    render();
+  } catch(e) {
+    $('loginError').textContent = 'Erro ao carregar playlist: ' + e.message;
+  }
+  $('connectBtn').textContent = 'CONECTAR';
+  $('connectBtn').disabled = false;
+}
+
+// ── Connect ──
+async function connect() {
+  srv = $('serverUrl').value.replace(/\/+$/, '');
+  user = $('userName').value.trim();
+  pass = $('userPass').value.trim();
+  $('loginError').textContent = '';
+  $('connectBtn').textContent = 'CONECTANDO...';
+  $('connectBtn').disabled = true;
+  localStorage.setItem('zyx_last', srv);
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 15000);
+    info = await api('');
+    clearTimeout(to);
+    if (info.user_info?.auth === 0) throw new Error('Credenciais inválidas');
+    // Auto-save Xtream server
+    let list = getServers();
+    const url = srv, u = user, p = pass;
+    const exists = list.findIndex(s => s.url === url && s.user === u && s.type !== 'm3u');
+    if (exists < 0) {
+      const name = $('serverName').value.trim() || url.replace(/https?:\/\//,'').split('/')[0];
+      list.push({ name, url, user: u, pass: p, fav: false });
+      saveServers(list);
+      renderServerList();
+    }
+    $('loginScreen').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    $('sideName').textContent = info.user_info.username;
+    $('sideExpiry').textContent = `Expira: ${formatExpDate(info.user_info.exp_date)}`;
+    $('vGrid').className = view==='grid'?'active':'';
+    $('vList').className = view==='list'?'active':'';
+    $('vRow').className = view==='row'?'active':'';
+    if (splitMode) $('vSplit').classList.add('active');
+    loadAll();
+  } catch(e) {
+    $('loginError').textContent = e.name === 'AbortError' ? 'Tempo limite excedido - servidor sem resposta' : e.message;
+  }
+  $('connectBtn').textContent = 'CONECTAR';
+  $('connectBtn').disabled = false;
+}
+
+function logout() {
+  loginMode = 'xtream'; m3uEpgUrl = '';
+  sessionStorage.removeItem('pin_ok');
+  $('loginScreen').classList.remove('hidden');
+  $('app').classList.add('hidden');
+  if (hls) { hls.destroy(); hls = null; }
+  releaseWakeLock();
+}
+
+// ── Load data ──
+async function loadAll() {
+  if (loginMode === 'm3u') return;
+  $('inner').innerHTML = '<div class="loading">Carregando...</div>';
+  try {
+    const seq = (url, delay) => new Promise(r => setTimeout(r, delay)).then(() => api('', url));
+    const [lc, mc, sc] = await Promise.all([seq('action=get_live_categories',0), seq('action=get_vod_categories',300), seq('action=get_series_categories',600)]);
+    const [ls, ms, sr] = await Promise.all([seq('action=get_live_streams',900), seq('action=get_vod_streams',1200), seq('action=get_series',1500)]);
+    const sortCats = arr => (arr||[]).sort((a,b) => (a.category_name||'').localeCompare(b.category_name||''));
+    cats = { live: sortCats(lc), movie: sortCats(mc), series: sortCats(sc) };
+    streams = { live: ls||[], movie: ms||[] };
+    series = sr||[];
+    buildNav();
+    render();
+    loadEPG();
+  } catch(e) { $('inner').innerHTML = '<div class="loading">Erro ao carregar dados. Verifique sua conexão.</div>'; }
+}
+
+// ── Navigation ──
+function setType(t) {
+  if (type === t) { type = ''; catId = null; showingFavs = false; buildNav(); closeSidebar(); return; }
+  type = t; catId = null; showingFavs = false; buildNav(); render();
+  $('contentArea').scrollTop = 0; closeSidebar();
+}
+function setCat(id) { catId = id; showingFavs = false; buildNav(); render(); $('contentArea').scrollTop = 0; closeSidebar(); }
+function setView(v) { view = v; localStorage.setItem('zyx_view', v); $('vGrid').className = v==='grid'?'active':''; $('vList').className = v==='list'?'active':''; $('vRow').className = v==='row'?'active':''; render(); $('contentArea').scrollTop = 0; }
+function showFavs() { showingFavs = true; type = 'live'; catId = null; buildNav(); render(); $('contentArea').scrollTop = 0; closeSidebar(); }
+
+function buildNav() {
+  const nav = $('sideNav');
+  const favCount = getFavs().length;
+  const html = MODS.map(m => {
+    const a = type === m.k && !showingFavs;
+    const cnt = m.k === 'series' ? series.length : (streams[m.k]||[]).length;
+    const c = cats[m.k] || [];
+    return `<div class="module-header ${a?'active':''}" tabindex="0" onclick="setType('${m.k}')">${m.i} ${m.l}<span class="count">${cnt}</span></div>
+      <div class="module-body ${a?'open':''}">
+        <div class="cat-item ${a&&!catId?'active':''}" tabindex="0" onclick="${a ? "setCat(null)" : "setType('"+m.k+"');setCat(null)"}">Todos</div>
+        ${c.filter(x => !isHiddenContent(x)).map(x => `<div class="cat-item ${a&&catId==x.category_id?'active':''}" tabindex="0" onclick="${a ? "setCat("+x.category_id+")" : "setType('"+m.k+"');setCat("+x.category_id+")"}">${x.category_name}</div>`).join('')}
+      </div>`;
+  }).concat(favCount ? `<div class="fav-header ${showingFavs?'active':''}" tabindex="0" onclick="showFavs()">⭐ Favoritos<span class="count">${favCount}</span></div>` : '').join('');
+  nav.innerHTML = html;
+}
+
+// ── EPG ──
+let epgMap = {};
+let epgLoading = false;
+let epgDone = false;
+let epgCallbacks = [];
+
+function onEPGReady(fn) {
+  if (epgDone) fn();
+  else epgCallbacks.push(fn);
+}
+
+async function loadEPG() {
+  if (epgDone || epgLoading) return;
+  epgLoading = true;
+  try {
+    const url = m3uEpgUrl || `${srv}/xmltv.php?username=${user}&password=${pass}`;
+    if (!url) { epgLoading = false; return; }
+    const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+    const xml = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, 'text/xml');
+    const programmes = doc.querySelectorAll('programme');
+    programmes.forEach(p => {
+      const ch = p.getAttribute('channel');
+      if (!ch) return;
+      if (!epgMap[ch]) epgMap[ch] = [];
+      const start = p.getAttribute('start') || '';
+      const stop = p.getAttribute('stop') || '';
+      const title = p.querySelector('title')?.textContent || '';
+      epgMap[ch].push({
+        title,
+        start,
+        stop,
+        start_timestamp: parseXmltvTime(start),
+        stop_timestamp: parseXmltvTime(stop),
+      });
+    });
+    epgDone = true;
+    epgCallbacks.forEach(fn => fn());
+    epgCallbacks = [];
+  } catch(e) { console.warn('EPG load failed:', e); }
+  epgLoading = false;
+}
+
+function parseXmltvTime(t) {
+  if (!t) return 0;
+  const m = t.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(?:\s*([+-])(\d{2})(\d{2}))?/);
+  if (!m) return 0;
+  const [_, y, mo, d, h, mi, s, sign, tzH, tzM] = m;
+  const localEpoch = Date.UTC(+y, +mo-1, +d, +h, +mi, +s) / 1000;
+  if (sign) {
+    const offsetSec = (+tzH * 3600 + +tzM * 60) * (sign === '-' ? -1 : 1);
+    return localEpoch - offsetSec;
+  }
+  return localEpoch;
+}
+
+function getEPG(channelId) {
+  if (!channelId || !epgMap[channelId]) return { now: null, next: null };
+  const list = epgMap[channelId];
+  const nowMs = Date.now() / 1000;
+  const now = list.find(e => e.start_timestamp <= nowMs && e.stop_timestamp > nowMs);
+  const next = now ? list.find(e => e !== now && e.start_timestamp > nowMs) : list[0];
+  return { now, next };
+}
+
+// ── Render ──
+function render() {
+  const q = $('searchInput').value.toLowerCase();
+
+  if (showingFavs) {
+    const favs = getFavs();
+    let items = [];
+    favs.forEach(f => {
+      if (f.t === 'series') {
+        const s = series.find(x => x.series_id == f.id);
+        if (s) items.push({ ...s, _type: 'series', _id: s.series_id });
+      } else {
+        const s = (streams[f.t]||[]).find(x => x.stream_id == f.id);
+        if (s) items.push({ ...s, _type: f.t, _id: s.stream_id });
+      }
+    });
+    if (q) items = items.filter(s => normalizeStr(s.name||'').includes(normalizeStr(q)));
+    if (!items.length) { $('inner').innerHTML = '<div class="loading">⭐ Nenhum favorito</div>'; return; }
+    renderStreams(items);
+    focusFirstCardInContent(); return;
+  }
+
+  const isSeries = type === 'series';
+  let items = isSeries ? series : (streams[type]||[]);
+
+  if (view === 'row' && !catId && !q) { renderRows(isSeries, items); focusFirstCardInContent(); return; }
+
+  const prevView = view;
+  if (view === 'row' && q) view = 'grid';
+  if (catId) items = items.filter(s => s.category_id == catId);
+  if (q) { const qn = normalizeStr(q); items = items.filter(s => { const n = normalizeStr(s.name||''); const c = normalizeStr(s.category_name||''); return n.includes(qn) || c.includes(qn); }); }
+  if (!items.length) { $('inner').innerHTML = '<div class="loading">📭 Nenhum conteúdo encontrado</div>'; view = prevView; return; }
+
+  if (isSeries) renderSeries(items);
+  else renderStreams(items);
+  view = prevView;
+  focusFirstCardInContent();
+}
+function focusFirstCardInContent() {
+  const c = document.querySelector('.channel-card, .row-card, .channel-row, .channel-list .channel-row');
+  if (c) c.focus();
+}
+
+function renderRows(isSeries, items) {
+  const catList = isSeries ? (cats.series||[]) : (cats[type]||[]);
+  if (!catList.length) {
+    if (isSeries) { renderSeries(items); focusFirstCardInContent(); return; }
+    renderStreams(items); focusFirstCardInContent(); return;
+  }
+  let html = '<div class="row-view">';
+  catList.forEach(c => {
+    const list = items.filter(s => s.category_id == c.category_id && !isHiddenContent(s));
+    if (!list.length) return;
+    html += `<section class="row-section"><h2>${c.category_name}<span class="row-count">${list.length}</span></h2><div class="row-scroll">`;
+    list.forEach(s => {
+      const sid = s.series_id || s.stream_id;
+      const name = s.name || '';
+      const rating = s.rating_5based ? `<div class="rating">★ ${Number(s.rating_5based).toFixed(1)}</div>` : '';
+      const fav = isFav(isSeries?'series':type, sid);
+      const escName = name.replace(/'/g,"\\'");
+      const fn = isSeries ? `showSeries(${sid},'${escName}')` : (type === 'movie' ? `showMovieInfo(${sid})` : `playChannel(${sid})`);
+      html += `<div class="row-card" onclick="${fn}" tabindex="0">
+        <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('${isSeries?'series':type}',${sid})">${fav?'⭐':'☆'}</button>
+        <img src="${imgUrl(s, isSeries?'cover':'stream_icon')}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+        <div class="card-overlay">${rating}<h3>${name}</h3></div>
+      </div>`;
+    });
+    html += '</div></section>';
+  });
+  html += '</div>';
+  $('inner').innerHTML = html || '<div class="loading">📭 Nenhum conteúdo encontrado</div>';
+  focusFirstCardInContent();
+}
+
+function imgUrl(s, field) {
+  const val = s[field || 'stream_icon'] || s.cover || '';
+  if (!val) return '';
+  if (val.startsWith('http://') || val.startsWith('https://')) return val;
+  return `${srv.replace(/\/+$/, '')}/pictures/${val}`;
+}
+
+function renderStreams(list) {
+  const isLive = type === 'live' && !showingFavs;
+  const card = (s, fn) => {
+    const fav = isFav(s._type || type, s._id || s.stream_id);
+    const sid = s._id || s.stream_id;
+    if (view === 'grid') {
+      const rating = s.rating_5based ? `<div class="rating">★ ${Number(s.rating_5based).toFixed(1)}</div>` : '';
+      return `<div class="channel-card" onclick="${fn}" tabindex="0">
+        <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('${s._type||type}',${sid})">${fav?'⭐':'☆'}</button>
+        <img src="${imgUrl(s)}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+        <div class="card-overlay">${rating}<h3>${s.name}</h3>${isLive?'':''}</div>
+        ${isLive ? `<div class="epg" id="epgg-${sid}"></div>` : ''}
+      </div>`;
+    }
+    return `<div class="channel-row" tabindex="0" onclick="${fn}">
+      <img src="${imgUrl(s)}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+      <div class="info"><h3>${s.name}</h3>${isLive ? `<div class="epg" id="epgl-${sid}"></div>` : `<span>${s.category_name||''}</span>`}</div>
+      <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('${s._type||type}',${sid})">${fav?'⭐':'☆'}</button>
+    </div>`;
+  };
+  const cls = view === 'grid' ? 'channel-grid' : 'channel-list';
+  const filtered = list.filter(s => !isHiddenContent(s));
+  $('inner').innerHTML = filtered.length
+    ? `<div class="${cls}">${filtered.map(s => card(s, type==='live'?`playChannel(${s._id||s.stream_id})`:`showMovieInfo(${s._id||s.stream_id})`)).join('')}</div>`
+    : '<div class="loading">📭 Nenhum conteúdo encontrado</div>';
+  if (isLive) {
+    list.forEach(s => {
+      const sid = s._id || s.stream_id;
+      const cid = s.epg_channel_id || sid;
+      const updateEpg = () => {
+        const {now, next} = getEPG(cid);
+        const id = view === 'grid' ? `epgg-${sid}` : `epgl-${sid}`;
+        const el = $(id);
+        if (!el) return;
+        if (!now && !next) { el.innerHTML = ''; return; }
+        let h = '';
+        if (now) h += `<div class="now">▶ ${now.title}</div>`;
+        if (next && next !== now) h += `<div class="next">⬇ ${next.title}</div>`;
+        el.innerHTML = h;
+      };
+      updateEpg();
+      if (!epgDone) onEPGReady(updateEpg);
+    });
+  }
+}
+
+function updateFavButtons() {
+  document.querySelectorAll('.fav-btn').forEach(btn => {
+    const onclick = btn.getAttribute('onclick') || '';
+    const match = onclick.match(/toggleFav\('(\w+)',(\d+)\)/);
+    if (match) {
+      const fav = isFav(match[1], parseInt(match[2]));
+      btn.textContent = fav ? '⭐' : '☆';
+      btn.classList.toggle('active', fav);
+    }
+  });
+}
+
+function renderSeries(list) {
+  const escape = s => (s||'').replace(/'/g, "\\'");
+  const card = (s, fn) => {
+    const fav = isFav('series', s.series_id);
+    if (view === 'grid') {
+      const rating = s.rating_5based ? `<div class="rating">★ ${Number(s.rating_5based).toFixed(1)}</div>` : '';
+      return `<div class="channel-card" onclick="${fn}" tabindex="0">
+        <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('series',${s.series_id})">${fav?'⭐':'☆'}</button>
+        <img src="${imgUrl(s,'cover')}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+        <div class="card-overlay">${rating}<h3>${s.name}</h3></div>
+      </div>`;
+    }
+    return `<div class="channel-row" tabindex="0" onclick="${fn}">
+      <img src="${imgUrl(s,'cover')}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+      <div class="info"><h3>${s.name}</h3><span>${s.year||s.category_name||''}</span></div>
+      <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('series',${s.series_id})">${fav?'⭐':'☆'}</button>
+    </div>`;
+  };
+  const cls = view === 'grid' ? 'channel-grid' : 'channel-list';
+  const filtered = list.filter(s => !isHiddenContent(s));
+  $('inner').innerHTML = filtered.length
+    ? `<div class="${cls}">${filtered.map(s => card(s, `showSeries('${s.series_id}','${escape(s.name)}')`)).join('')}</div>`
+    : '<div class="loading">📭 Nenhum conteúdo encontrado</div>';
+}
+
+// ── Movie info modal ──
+async function showMovieInfo(id) {
+  const s = (streams[type]||[]).find(x => x.stream_id == id);
+  if (!s) return;
+  const base = srv.replace(/\/+$/, '');
+  let infoData = null;
+  if (loginMode !== 'm3u') {
+    try {
+      infoData = await api('', `action=get_vod_info&vod_id=${id}`);
+    } catch(e) { console.warn('VOD info failed:', e); }
+  }
+
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.onclick = e => { if (e.target === bd) bd.remove(); };
+
+  const movie = infoData?.info || s;
+  const genres = movie.genre ? (Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre) : s.category_name || '';
+  const year = movie.year || movie.release_date || '';
+  const duration = movie.duration ? Math.floor(movie.duration/60) : '';
+  const rating = s.rating_5based || movie.rating_5based || '';
+  const desc = movie.plot || movie.description || s.description || 'Sem descrição disponível.';
+  const cover = imgUrl(s);
+
+  const html = `<div class="modal-box">
+    <button class="close-modal" onclick="this.closest('.modal-backdrop').remove()">✕</button>
+    <div class="modal-row">
+      ${cover ? `<img src="${cover}" class="modal-cover" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">` : ''}
+      <div class="modal-info">
+        <h2>${s.name}</h2>
+        <div class="sub">${[year, genres, duration ? duration+'min' : ''].filter(Boolean).join(' • ')}</div>
+        ${rating ? `<div class="star star-lg mb-16">★ ${Number(rating).toFixed(1)}</div>` : ''}
+        <div class="desc">${desc}</div>
+        <button class="play-btn" onclick="this.closest('.modal-backdrop').remove();playChannel(${id})">▶ Assistir</button>
+      </div>
+    </div>
+  </div>`;
+  bd.innerHTML = html;
+  document.body.appendChild(bd);
+  const fc = bd.querySelector('.close-modal, .play-btn, .episode-item');
+  if (fc) setTimeout(() => fc.focus(), 100);
+}
+
+// ── Series modal ──
+async function showSeries(id, name) {
+  if (!CACHE[id]) { const keys = Object.keys(CACHE); if (keys.length >= 50) delete CACHE[keys[0]]; CACHE[id] = await api('', `action=get_series_info&series_id=${id}`); }
+  const d = CACHE[id];
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.onclick = e => { if (e.target === bd) bd.remove(); };
+  const base = srv.replace(/\/+$/, '');
+  const sid = d.info?.series_id || '';
+  const cover = imgUrl(d.info || {}, 'cover');
+  let html = `<div class="modal-box"><button class="close-modal" onclick="this.closest('.modal-backdrop').remove()">✕</button>`;
+  html += `<div class="modal-row mb-16">
+    ${cover ? `<img src="${cover}" class="modal-cover-sm" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">` : ''}
+    <div class="flex-1"><h2>${name}</h2>${d.info?.plot ? `<div class="desc mt-8">${d.info.plot}</div>` : ''}</div>
+  </div>`;
+
+  const eps = d.episodes || [];
+  if (Array.isArray(eps) && eps.length) {
+    const seasons = {};
+    eps.forEach(ep => {
+      const sn = ep.season || 1;
+      if (!seasons[sn]) seasons[sn] = [];
+      seasons[sn].push(ep);
+    });
+    Object.keys(seasons).sort((a,b) => a-b).forEach(sn => {
+      html += `<div class="season-title">Temporada ${sn}</div>`;
+      seasons[sn].forEach(ep => {
+        const url = `${base}/series/${user}/${pass}/${sid}/${ep.id}.${ep.container_extension||'mp4'}`;
+        html += `<div class="episode-item" tabindex="0" onclick="this.closest('.modal-backdrop').remove();if(splitMode){openInlinePlayer('${(name+' - '+(ep.title||'')).replace(/'/g,"\\'")}',['${url}'])}else{openPlayer('${(name+' - '+(ep.title||'')).replace(/'/g,"\\'")}',['${url}'],0)}">
+          <span class="num">${ep.episode_num||''}</span><h4>${ep.title||'Episódio '+(ep.episode_num||'')}</h4>
+          <span class="info">${ep.info?.duration?Math.floor(ep.info.duration/60)+'min':''}</span>
+        </div>`;
+      });
+    });
+  } else if (typeof eps === 'object' && !Array.isArray(eps)) {
+    Object.keys(eps).sort((a,b) => a-b).forEach(sn => {
+      if (!eps[sn]?.length) return;
+      html += `<div class="season-title">Temporada ${sn}</div>`;
+      eps[sn].forEach(ep => {
+        const url = `${base}/series/${user}/${pass}/${sid}/${ep.id}.${ep.container_extension||'mp4'}`;
+        html += `<div class="episode-item" tabindex="0" onclick="this.closest('.modal-backdrop').remove();if(splitMode){openInlinePlayer('${(name+' - '+(ep.title||'')).replace(/'/g,"\\'")}',['${url}'])}else{openPlayer('${(name+' - '+(ep.title||'')).replace(/'/g,"\\'")}',['${url}'],0)}">
+          <span class="num">${ep.episode_num||''}</span><h4>${ep.title||'Episódio '+(ep.episode_num||'')}</h4>
+          <span class="info">${ep.info?.duration?Math.floor(ep.info.duration/60)+'min':''}</span>
+        </div>`;
+      });
+    });
+  } else {
+    html += '<div class="text-muted p-20 text-center">Nenhum episódio disponível</div>';
+  }
+
+  bd.innerHTML = html + '</div>';
+  document.body.appendChild(bd);
+  const fc2 = bd.querySelector('.close-modal, .episode-item');
+  if (fc2) setTimeout(() => fc2.focus(), 100);
+}
+
+let splitMode = localStorage.getItem('zyx_split') === '1';
+let inlineHls = null;
+let inlineStreamUrls = null;
+
+function toggleSplit() {
+  splitMode = !splitMode;
+  localStorage.setItem('zyx_split', splitMode ? '1' : '0');
+  $('vSplit').classList.toggle('active', splitMode);
+  if (!splitMode) closeInlinePlayer();
+}
+
+function playInline(id) {
+  const s = (streams[type]||[]).find(x => x.stream_id == id);
+  if (!s) return;
+  currentStreamInfo = s;
+  if (isAdultContent(s) && !sessionStorage.getItem('pin_ok')) { showPinPrompt(() => playChannel(id)); return; }
+  if (s.stream_url) { openInlinePlayer(s.name, [s.stream_url]); return; }
+  const base = srv.replace(/\/+$/, '');
+  const t = type === 'live' ? 'live' : 'movie';
+  const ext = s.container_extension || '';
+  const urls = [...new Set([
+    ext ? `${base}/${t}/${user}/${pass}/${id}.${ext}` : null,
+    `${base}/${t}/${user}/${pass}/${id}`,
+    `${base}/${t}/${user}/${pass}/${id}.m3u8`,
+    `${base}/${t}/${user}/${pass}/${id}.ts`,
+  ].filter(Boolean))];
+  openInlinePlayer(s.name, urls);
+}
+
+function openInlinePlayer(title, urls) {
+  inlineStreamUrls = urls;
+  $('ipTitle').textContent = title;
+  $('inlinePlayer').classList.remove('hidden');
+  const wrap = $('inlinePlayer').querySelector('.ip-video-wrap');
+  wrap.innerHTML = '<video id="ipVideo" controls playsinline webkit-playsinline></video>';
+  const v = $('ipVideo');
+  if (inlineHls) { inlineHls.destroy(); inlineHls = null; }
+
+  // Show EPG in inline player
+  if (currentStreamInfo) {
+    const cid = currentStreamInfo.epg_channel_id || currentStreamInfo.stream_id;
+    const {now, next} = getEPG(cid);
+    $('ipNow').textContent = now ? `▶ ${now.title}` : '';
+    $('ipNext').textContent = next ? `A seguir: ${next.title}` : '';
+  }
+
+  function tryUrl(idx) {
+    if (idx >= urls.length) return;
+    const u = urls[idx];
+    const next = () => tryUrl(idx+1);
+    if (!useNativePlayer() && typeof Hls !== 'undefined' && Hls.isSupported() && (u.includes('.m3u8') || u.includes('.ts'))) {
+      if (inlineHls) inlineHls.destroy();
+      inlineHls = new Hls();
+      inlineHls.loadSource(u);
+      inlineHls.attachMedia(v);
+      inlineHls.on(Hls.Events.MANIFEST_PARSED, () => v.play().catch(() => {
+        if (inlineHls) { inlineHls.destroy(); inlineHls = null; }
+        v.src = u; v.onerror = next; v.play().catch(next);
+      }));
+      inlineHls.on(Hls.Events.ERROR, (_, d) => {
+        if (d.fatal) {
+          inlineHls.destroy(); inlineHls = null;
+          v.src = u; v.onerror = next; v.play().catch(next);
+        }
+      });
+    } else {
+      v.src = u;
+      v.onerror = next;
+      v.play().catch(next);
+    }
+  }
+  tryUrl(0);
+}
+
+function maximizeInlinePlayer() {
+  const v = $('ipVideo');
+  if (!v) return;
+  if (v.requestFullscreen) v.requestFullscreen();
+  else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+  else { const u = inlineStreamUrls; if (u?.length) { closeInlinePlayer(); openPlayer($('ipTitle')?.textContent||'', u, 0); } }
+}
+
+function closeInlinePlayer() {
+  if (inlineHls) { inlineHls.destroy(); inlineHls = null; }
+  inlineStreamUrls = null;
+  $('inlinePlayer').classList.add('hidden');
+  const wrap = $('inlinePlayer').querySelector('.ip-video-wrap');
+  wrap.innerHTML = '<video id="ipVideo" controls playsinline webkit-playsinline></video>';
+}
+
+// ── Play channel ──
+function playChannel(id) {
+  if (splitMode) { playInline(id); return; }
+  const s = (streams[type]||[]).find(x => x.stream_id == id);
+  if (!s) return;
+  currentStreamInfo = s;
+  if (isAdultContent(s) && !sessionStorage.getItem('pin_ok')) { showPinPrompt(() => playChannel(id)); return; }
+  if (s.stream_url) { openPlayer(s.name, [s.stream_url], 0); return; }
+  const base = srv.replace(/\/+$/, '');
+  const t = type === 'live' ? 'live' : 'movie';
+  const ext = s.container_extension || '';
+  const urls = [...new Set([
+    ext ? `${base}/${t}/${user}/${pass}/${id}.${ext}` : null,
+    `${base}/${t}/${user}/${pass}/${id}`,
+    `${base}/${t}/${user}/${pass}/${id}.m3u8`,
+    `${base}/${t}/${user}/${pass}/${id}.ts`,
+    `${base}/${t}/${user}/${pass}/${id}.mp4`,
+  ].filter(Boolean))];
+  openPlayer(s.name, urls, 0);
+}
+
+// ── Player ──
+let closingPlayer = false;
+let currentStreamInfo = null;
+let epgTimer = null;
+
+function showPlayerError(msg) {
+  const el = $('playerError') || (() => {
+    const d = document.createElement('div');
+    d.id = 'playerError';
+    d.style.cssText = 'position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(233,69,96,.9);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:5;text-align:center;max-width:80%;line-height:1.4';
+    $('playerVideoWrap')?.appendChild(d);
+    return d;
+  })();
+  el.textContent = msg;
+}
+
+function openPlayer(title, urls, idx) {
+  if (idx >= urls.length || closingPlayer) {
+    if (idx >= urls.length && !closingPlayer) showPlayerError('Falha ao reproduzir. Verifique a conexão.');
+    return;
+  }
+  showPlayerError('');
+  $('playerTitle').textContent = title;
+  $('playerOverlay').classList.remove('hidden');
+  requestWakeLock();
+  const wrap = $('playerVideoWrap');
+  wrap.innerHTML = '<video id="playerVideo" controls playsinline webkit-playsinline></video>';
+  const v = $('playerVideo');
+  if (hls) { hls.destroy(); hls = null; }
+
+  showEpgOverlay();
+  wrap.onclick = toggleEpgOverlay;
+
+  const u = urls[idx];
+  const tryNext = () => { if (!closingPlayer) openPlayer(title,urls,idx+1); };
+  let canplayTimer;
+
+  function playWhenReady() {
+    clearTimeout(canplayTimer);
+    v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+  }
+
+  if (!useNativePlayer() && typeof Hls !== 'undefined' && Hls.isSupported() && (u.includes('.m3u8') || u.includes('.ts'))) {
+    hls = new Hls();
+    hls.loadSource(u);
+    hls.attachMedia(v);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      if (!closingPlayer) playWhenReady();
+    });
+    hls.on(Hls.Events.ERROR, (_, d) => {
+      if (d.fatal && !closingPlayer) {
+        hls.destroy(); hls = null;
+        v.src = u; v.onerror = tryNext;
+        v.addEventListener('canplay', playWhenReady, { once: true });
+        canplayTimer = setTimeout(tryNext, 20000);
+      }
+    });
+  } else {
+    v.src = u;
+    v.onerror = tryNext;
+    v.addEventListener('canplay', playWhenReady, { once: true });
+    canplayTimer = setTimeout(tryNext, 20000);
+  }
+}
+
+function showEpgOverlay() {
+  const epg = $('playerEpg');
+  if (!epg) return;
+  if (currentStreamInfo) {
+    const cid = currentStreamInfo.epg_channel_id || currentStreamInfo.stream_id;
+    const {now, next} = getEPG(cid);
+    $('pepgName').textContent = currentStreamInfo.name;
+    $('pepgNow').textContent = now ? `▶ ${now.title}` : 'Sem programação no momento';
+    $('pepgNext').textContent = next ? next.title : '';
+  } else {
+    const cid = $('playerTitle').textContent;
+    $('pepgName').textContent = cid;
+    $('pepgNow').textContent = '';
+    $('pepgNext').textContent = '';
+  }
+  epg.classList.add('show');
+  clearTimeout(epgTimer);
+  epgTimer = setTimeout(() => epg.classList.remove('show'), 15000);
+}
+
+function toggleEpgOverlay() {
+  const epg = $('playerEpg');
+  if (!epg) return;
+  if (epg.classList.contains('show')) {
+    epg.classList.remove('show');
+    clearTimeout(epgTimer);
+  } else {
+    showEpgOverlay();
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('playerOverlay').classList.contains('hidden')) {
+    e.preventDefault();
+    closePlayer();
+    return;
+  }
+  if (!$('playerOverlay').classList.contains('hidden')) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const cards = document.querySelectorAll('.channel-card, .row-card');
+    if (!cards.length) return;
+    const focused = document.activeElement;
+    let cur = Array.from(cards).indexOf(focused);
+    if (cur < 0) cur = 0;
+    const cols = Math.floor(document.querySelector('.channel-grid')?.offsetWidth / 170) || 4;
+    if (e.key === 'ArrowRight' && cur < cards.length - 1) cur++;
+    else if (e.key === 'ArrowLeft' && cur > 0) cur--;
+    else if (e.key === 'ArrowDown') cur = Math.min(cur + cols, cards.length - 1);
+    else if (e.key === 'ArrowUp') cur = Math.max(cur - cols, 0);
+    cards[cur].focus();
+    cards[cur].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+});
+
+$('playerOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closePlayer();
+});
+
+$('closePlayerBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  closePlayer();
+});
+
+function closePlayer() {
+  closingPlayer = true;
+  $('playerOverlay').classList.add('hidden');
+  if (hls) { hls.destroy(); hls = null; }
+  releaseWakeLock();
+  const wrap = $('playerVideoWrap');
+  wrap.innerHTML = '<video id="playerVideo" controls playsinline webkit-playsinline></video>';
+  setTimeout(() => { closingPlayer = false; }, 100);
+}
+let touchStartY = 0;
+$('playerOverlay').addEventListener('touchstart', function(e) { touchStartY = e.touches[0].clientY; }, { passive: true });
+$('playerOverlay').addEventListener('touchend', function(e) { const dy = e.changedTouches[0].clientY - touchStartY; if (dy > 100) closePlayer(); }, { passive: true });
+
+// ── Settings modal ──
+let settingsTab = 'geral';
+function showSettings(tab) {
+  settingsTab = tab || 'geral';
+  const old = document.getElementById('settingsModal');
+  if (old) old.remove();
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.id = 'settingsModal';
+  bd.onclick = e => { if (e.target === bd) bd.remove(); };
+  document.body.appendChild(bd);
+  renderSettings();
+}
+function renderSettings() {
+  const bd = $('settingsModal');
+  if (!bd) return;
+  const totalFavs = getFavs().length;
+  const servers = getServers().length;
+  const tabs = ['geral','parental','rede'];
+  const tabLabels = { geral: '⚙ Geral', parental: '🔒 Parental', rede: '📡 Rede' };
+  bd.innerHTML = `<div class="modal-box">
+    <button class="close-modal" onclick="this.closest('.modal-backdrop').remove()">✕</button>
+    <h2 class="mb-16">Configurações</h2>
+    <div class="settings-tabs">${tabs.map(t => `<button class="st-tab ${t===settingsTab?'active':''}" onclick="settingsTab='${t}';renderSettings()">${tabLabels[t]}</button>`).join('')}</div>
+    <div class="settings-body">${renderSettingsTab()}</div>
+  </div>`;
+}
+function renderSettingsTab() {
+  if (settingsTab === 'geral') return `
+    <div class="bg-card rounded-12 p-16">
+      <div class="info-row"><span class="text-muted">Servidores salvos</span><span>${getServers().length}</span></div>
+      <div class="info-row"><span class="text-muted">Favoritos</span><span>${getFavs().length}</span></div>
+      <div class="info-row"><span class="text-muted">Usuário</span><span>${info?.user_info?.username||'-'}</span></div>
+      <div class="info-row"><span class="text-muted">Expira em</span><span>${formatExpDate(info?.user_info?.exp_date)}</span></div>
+      <div class="info-row"><span class="text-muted">Canais ao vivo</span><span>${(streams.live||[]).length}</span></div>
+      <div class="info-row"><span class="text-muted">Filmes</span><span>${(streams.movie||[]).length}</span></div>
+      <div class="info-row"><span class="text-muted">Séries</span><span>${series.length}</span></div>
+      <div class="info-row"><span class="text-muted">Versão</span><span>${APP_VERSION}</span></div>
+    </div>
+    <div class="flex gap-8 mt-16">
+      <button class="login-btn btn-secondary flex-1" onclick="if(confirm('Limpar todo o cache e dados?')){localStorage.clear();location.reload()}">Limpar dados</button>
+    </div>`;
+  if (settingsTab === 'parental') {
+    const pin = getPin();
+    autoDetectAdultCats();
+    const adult = getAdultCats();
+    const allCats = [...(cats.live||[]), ...(cats.movie||[])];
+    return `
+      <div class="bg-card rounded-12 p-16 mb-16">
+        <div class="mb-12"><strong>PIN de bloqueio</strong></div>
+        <div class="flex gap-8">
+          <input type="password" id="pinInput2" class="login-input" placeholder="${pin ? 'Novo PIN (4 dígitos)' : 'Definir PIN (4 dígitos)'}" maxlength="4" inputmode="numeric" pattern="[0-9]*" value="">
+          <button class="login-btn btn-secondary" onclick="setPin($('pinInput2').value);renderSettings()">${pin ? 'Alterar' : 'Definir'}</button>
+          ${pin ? `<button class="login-btn btn-secondary" onclick="setPin('');sessionStorage.removeItem('pin_ok');renderSettings()">Remover</button>` : ''}
+        </div>
+        ${pin ? '<div class="text-muted mt-8" style="font-size:12px">PIN ativo. As categorias marcadas abaixo exigirão PIN.</div>' : '<div class="text-muted mt-8" style="font-size:12px">Sem PIN definido. Defina um PIN de 4 dígitos para ativar o bloqueio.</div>'}
+      </div>
+      <div class="bg-card rounded-12 p-16">
+        <div class="mb-12"><strong>Categorias</strong></div>
+        <div class="text-muted mb-8" style="font-size:12px">🔒 PIN = exige PIN • 🙈 Ocultar = esconde totalmente</div>
+        ${allCats.length ? allCats.map(c => {
+          const pin = adult.some(a => a.id == c.category_id || a.name === c.category_name);
+          const hide = getHiddenCats().some(a => a.id == c.category_id || a.name === c.category_name);
+          return `<div class="checkbox-row" style="justify-content:space-between"><span>${c.category_name}</span><div class="flex gap-8"><label style="font-size:13px"><input type="checkbox" ${pin?'checked':''} onchange="toggleAdultCat('${c.category_id}','${c.category_name.replace(/'/g,"\\'")}',this.checked)"> 🔒 PIN</label><label style="font-size:13px"><input type="checkbox" ${hide?'checked':''} onchange="toggleHiddenCat('${c.category_id}','${c.category_name.replace(/'/g,"\\'")}',this.checked)"> 🙈 Ocultar</label></div></div>`;
+        }).join('') : '<div class="text-muted">Nenhuma categoria disponível</div>'}
+      </div>`;
+  }
+  if (settingsTab === 'rede') return `
+    <div class="bg-card rounded-12 p-16">
+      <div class="info-row"><span class="text-muted">Status</span><span id="netStatus">${navigator.onLine ? '🟢 Online' : '🔴 Offline'}</span></div>
+      <div class="info-row"><span class="text-muted">Servidor</span><span style="font-size:12px;word-break:break-all">${srv || '-'}</span></div>
+      <div class="info-row"><span class="text-muted">Tipo</span><span>${loginMode === 'm3u' ? 'Playlist M3U' : 'Servidor Xtream'}</span></div>
+      <div class="info-row"><span class="text-muted">Canais</span><span>${(streams.live||[]).length}</span></div>
+      <div class="info-row"><span class="text-muted">Filmes</span><span>${(streams.movie||[]).length}</span></div>
+    </div>
+    <div class="mt-16">
+      <label class="checkbox-row"><input type="checkbox" id="nativePlayerCb" ${localStorage.getItem('zyx_native_player')==='1'?'checked':''} onchange="localStorage.setItem('zyx_native_player',this.checked?'1':'')"> Usar reprodutor nativo (menos engasgos em TV box)</label>
+    </div>
+    <div class="mt-16">
+      <button class="login-btn btn-secondary" onclick="testConnection()">Testar conexão</button>
+    </div>
+    <div id="netResult" class="mt-12"></div>`;
+  return '';
+}
+function toggleAdultCat(id, name, checked) {
+  let list = getAdultCats();
+  if (checked) {
+    if (!list.some(a => a.id == id)) list.push({ id, name });
+    let hidden = getHiddenCats();
+    hidden = hidden.filter(a => a.id != id);
+    setHiddenCats(hidden);
+  } else {
+    list = list.filter(a => a.id != id);
+  }
+  setAdultCats(list);
+}
+function toggleHiddenCat(id, name, checked) {
+  let list = getHiddenCats();
+  if (checked) {
+    if (!list.some(a => a.id == id)) list.push({ id, name });
+    let adult = getAdultCats();
+    adult = adult.filter(a => a.id != id);
+    setAdultCats(adult);
+  } else {
+    list = list.filter(a => a.id != id);
+  }
+  setHiddenCats(list);
+}
+async function testConnection() {
+  const el = $('netResult');
+  if (!el) return;
+  el.innerHTML = '<span class="text-muted">Testando...</span>';
+  const start = Date.now();
+  for (let i = 0; i < PROXIES.length; i++) {
+    const url = $('xtreamCorsProxy')?.checked ? PROXIES[i](srv) : srv;
+    try {
+      await fetch(url, { mode: 'no-cors', signal: AbortSignal.timeout(10000) });
+      el.innerHTML = `<span style="color:#4ecdc4">✅ Servidor respondeu em ${Date.now()-start}ms</span>`;
+      return;
+    } catch(e) {
+      if (i === PROXIES.length - 1)
+        el.innerHTML = `<span style="color:#ff4757">❌ Sem resposta (${e.name})</span>`;
+    }
+  }
+}
+
+// ── TV / Remote navigation ──
+const isTV = /Android\s*TV|Web0S|SmartTV|Tizen|OLED|LG\s*TV|BRAVIA|Hisense/i.test(navigator.userAgent);
+if (isTV && localStorage.getItem('zyx_native_player') === null) {
+  localStorage.setItem('zyx_native_player', '1');
+}
+if (isTV || window.innerWidth < 1024) {
+  document.body.classList.add('tv-mode');
+  const s = document.createElement('style');
+  s.textContent = '.tv-mode *:focus{outline:3px solid #e94560!important;outline-offset:3px;border-radius:4px}.tv-mode [tabindex]:focus{outline-offset:2px}';
+  document.head.appendChild(s);
+  setTimeout(() => {
+    const f = document.querySelector('input, button, select, [tabindex]');
+    if (f && !f.matches('.btn-admin-login')) f.focus();
+  }, 300);
+}
+
+document.addEventListener('keydown', e => {
+  const isTvMode = document.body.classList.contains('tv-mode');
+  const isLogin = $('loginScreen') && !$('loginScreen').classList.contains('hidden');
+  const isPlayer = $('playerOverlay') && !$('playerOverlay').classList.contains('hidden');
+
+  // Back (Android: 4, WebOS: 8/10009, Browser: 27)
+  if (e.keyCode === 4 || e.keyCode === 8 || e.keyCode === 10009) {
+    const tag = document.activeElement?.tagName;
+    const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    if (e.keyCode === 8 && isInput) return;
+    if ((e.keyCode === 4 || e.keyCode === 10009) && isInput) {
+      document.activeElement.value = ''; document.activeElement.dispatchEvent(new Event('input')); return;
+    }
+    e.preventDefault();
+    if (isPlayer) { closePlayer(); return; }
+    const modals = ['settingsModal','adminModal','seriesModal','epgModal','pinModal','channelInfo'];
+    for (const id of modals) {
+      const el = document.getElementById(id);
+      if (el && !el.classList.contains('hidden')) {
+        if (id === 'settingsModal' && typeof closeSettings === 'function') { closeSettings(); return; }
+        if (id === 'adminModal' && typeof closeAdmin === 'function') { closeAdmin(); return; }
+        if (id === 'seriesModal' && typeof closeSeries === 'function') { closeSeries(); return; }
+        if (id === 'epgModal' && typeof closeEPG === 'function') { closeEPG(); return; }
+        if (id === 'pinModal' && typeof closePin === 'function') { closePin(); return; }
+        if (id === 'channelInfo' && typeof closeChannelInfo === 'function') { closeChannelInfo(); return; }
+        el.classList.add('hidden'); return;
+      }
+    }
+    const modalBackdrop = document.querySelector('.modal-backdrop');
+    if (modalBackdrop) { modalBackdrop.remove(); return; }
+    if (isLogin && typeof logout === 'function') logout();
+    return;
+  }
+
+  // Escape closes modal or player
+  if (e.key === 'Escape') {
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) { backdrop.remove(); return; }
+    if (isPlayer) { e.preventDefault(); closePlayer(); return; }
+  }
+  if (isPlayer) return;
+
+  // Enter / Space triggers click on focused element
+  if (e.key === 'Enter' || e.key === ' ') {
+    const el = document.activeElement;
+    if (el && el.matches('.channel-card, .channel-row, .row-card, .module-header, .cat-item, .fav-header, .view-btn, .fav-btn, .icon-btn, .login-btn, .login-save-btn, .btn-secondary, .close-modal, .play-btn, .episode-item, .ip-btn')) {
+      e.preventDefault();
+      el.click();
+      return;
+    }
+    if (isLogin) {
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT') {
+        const btn = $('connectBtn');
+        if (btn && !btn.disabled) { btn.click(); return; }
+      }
+    }
+  }
+
+  // Arrow key navigation
+  if (e.key.startsWith('Arrow')) {
+    // Login screen: tab between elements
+    if (isLogin) {
+      e.preventDefault();
+      const focusable = document.querySelectorAll('#loginScreen input, #loginScreen select, #loginScreen button:not(.btn-admin-login), #loginScreen label');
+      const cur = Array.from(focusable).indexOf(document.activeElement);
+      let next = cur;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = Math.min(cur + 1, focusable.length - 1);
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = Math.max(cur - 1, 0);
+      if (next !== cur) focusable[next]?.focus();
+      return;
+    }
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    // Modal navigation
+    const modal = document.querySelector('.modal-backdrop');
+    if (modal) {
+      e.preventDefault();
+      const items = modal.querySelectorAll('.close-modal, .play-btn, .episode-item, button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      const cur = Array.from(items).indexOf(document.activeElement);
+      let next = cur;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = Math.min(cur + 1, items.length - 1);
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = Math.max(cur - 1, 0);
+      if (next >= 0 && next !== cur) items[next].focus();
+      return;
+    }
+    // Main panel navigation
+    const po = $('playerOverlay');
+    if (po && !po.classList.contains('hidden')) return;
+    e.preventDefault();
+    const active = document.activeElement;
+    const sidebarEls = document.querySelectorAll('.module-header, .cat-item, .fav-header');
+    const cards = document.querySelectorAll('.channel-card, .row-card, .channel-row');
+    const viewBtns = document.querySelectorAll('.view-btn');
+    const sidebar = $('sidebar');
+
+    // Sidebar navigation (↑↓ move, → goes to content)
+    if (active && sidebar?.contains(active)) {
+      let arr = Array.from(sidebarEls).filter(el => !el.closest('.module-body:not(.open)'));
+      if (!arr.includes(active)) {
+        const all = Array.from(sidebarEls);
+        const ci = all.indexOf(active);
+        if (ci >= 0) { // active is hidden, find nearest visible
+          const before = all.slice(0, ci).reverse().find(el => !el.closest('.module-body:not(.open)'));
+          const after = all.slice(ci+1).find(el => !el.closest('.module-body:not(.open)'));
+          const target = (e.key === 'ArrowUp' ? before : after) || before || after;
+          if (target) { target.focus(); target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+          return;
+        }
+      }
+      const cur = arr.indexOf(active);
+      let next = cur;
+      if (e.key === 'ArrowDown') next = Math.min(cur + 1, arr.length - 1);
+      else if (e.key === 'ArrowUp') next = Math.max(cur - 1, 0);
+      else if (e.key === 'ArrowRight') {
+        if (cards.length) { cards[0].focus(); return; }
+        if (ipEls.length) { ipEls[0].focus(); return; }
+        if (viewBtns.length) { viewBtns[0].focus(); return; }
+      }
+      if (next >= 0 && next !== cur) { arr[next].focus(); arr[next].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+      return;
+    }
+
+    // Inline player navigation
+    const ip = $('inlinePlayer');
+    const ipVisible = ip && !ip.classList.contains('hidden');
+    const ipEls = ipVisible ? Array.from(ip.querySelectorAll('.ip-btn, #ipVideo')) : [];
+    const focusedIp = active && ipEls.includes(active);
+
+    // Content area navigation (↑↓ move, ← goes to sidebar)
+    if (cards.length || ipEls.length) {
+      const focusedCard = active && (active.matches('.channel-card, .channel-row, .row-card'));
+      if (focusedIp) {
+        if (e.key === 'ArrowLeft' && sidebarEls.length) { sidebarEls[0]?.focus(); return; }
+        if (e.key === 'ArrowRight') return;
+        const cur = ipEls.indexOf(active);
+        let next = cur;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = Math.min(cur + 1, ipEls.length - 1);
+        else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = Math.max(cur - 1, 0);
+        if (next !== cur) { ipEls[next].focus(); return; }
+        if (e.key === 'ArrowUp' && cards.length) { cards[cards.length-1].focus(); return; }
+        return;
+      }
+      if (e.key === 'ArrowLeft' && sidebarEls.length) { sidebarEls[0]?.focus(); return; }
+      if (e.key === 'ArrowRight') { if (ipEls.length) { ipEls[0].focus(); } return; }
+      if (focusedCard || !active || active === document.body) {
+        const arr = Array.from(cards);
+        const curIdx = arr.indexOf(active);
+        let idx = curIdx < 0 ? 0 : curIdx;
+        if (e.key === 'ArrowDown' && idx >= arr.length - 1 && ipEls.length) { ipEls[0].focus(); return; }
+        if (e.key === 'ArrowUp' && curIdx < 0 && viewBtns.length) { viewBtns[0]?.focus(); return; }
+        const isGrid = active?.closest('.channel-grid');
+        const step = isGrid ? (Math.floor(document.querySelector('.channel-grid')?.offsetWidth / 170) || 4) : 1;
+        if (e.key === 'ArrowDown') idx = Math.min(idx + step, arr.length - 1);
+        else if (e.key === 'ArrowUp') idx = Math.max(idx - step, 0);
+        if (idx !== curIdx) { arr[idx].focus(); arr[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+        return;
+      }
+    }
+
+    // View buttons navigation (no panel change needed)
+    if (active && viewBtns.length && Array.from(viewBtns).includes(active)) {
+      const arr = Array.from(viewBtns);
+      const cur = arr.indexOf(active);
+      let next = cur;
+      if (e.key === 'ArrowLeft' && cur > 0) next = cur - 1;
+      else if (e.key === 'ArrowRight' && cur < arr.length - 1) next = cur + 1;
+      else if (e.key === 'ArrowDown' && cards.length) { cards[0].focus(); return; }
+      else if (e.key === 'ArrowUp' && sidebarEls.length) { sidebarEls[0]?.focus(); return; }
+      if (next !== cur) arr[next].focus();
+    }
+  }
+});
+
+// ── Auto-connect on load ──
+function tryAutoConnect() {
+  const saved = getServers();
+  // Find favorite server first, then last used
+  const fav = saved.find(s => s.fav && (s.type === 'm3u' || (s.user && s.pass)));
+  const last = saved.find(s => s.url === localStorage.getItem('zyx_last') && (s.type === 'm3u' || (s.user && s.pass)));
+  const target = fav || last;
+  if (target) {
+    const idx = saved.indexOf(target);
+    quickConnect(idx);
+  }
+}
+setTimeout(tryAutoConnect, 150);
+</script>
+</body>
+</html>

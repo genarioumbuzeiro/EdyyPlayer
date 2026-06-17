@@ -1,0 +1,7 @@
+node_modules/
+android/
+www/
+*.rar
+.DS_Store
+Thumbs.db
+local.properties
