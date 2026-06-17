@@ -106,9 +106,9 @@ body { font-family: 'Inter', sans-serif; background: #0c0c0f; color: #fff; overf
 .channel-card .fav-btn { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.5); border: none; color: #fff; font-size: 14px; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: .15s; z-index: 1; }
 .channel-card:hover .fav-btn { opacity: 1; }
 .channel-card .fav-btn.active { opacity: 1; color: #f1c40f; }
-.channel-card .epg { padding: 6px 10px; font-size: 10px; color: #aaa; background: rgba(0,0,0,.6); position: absolute; bottom: 0; left: 0; right: 0; z-index: 1; }
+.channel-card .epg { padding: 6px 10px; font-size: 10px; color: #aaa; background: rgba(0,0,0,.6); position: absolute; bottom: 0; left: 0; right: 0; z-index: 1; max-height: 45%; overflow: hidden; }
 .channel-card .epg .now { color: #4ecdc4; font-weight: 600; }
-.channel-card .epg .next { color: #666; margin-top: 1px; }
+.channel-card .epg .next { color: #777; font-size: 11px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .channel-list { display: flex; flex-direction: column; gap: 4px; }
 
@@ -134,8 +134,8 @@ body { font-family: 'Inter', sans-serif; background: #0c0c0f; color: #fff; overf
 .channel-row .info h3 { font-size: 13px; font-weight: 500; }
 .channel-row .info span { font-size: 11px; color: #666; }
 .channel-row .info .epg { font-size: 11px; margin-top: 2px; }
-.channel-row .info .epg-now { font-size: 11px; color: #4ecdc4; font-weight: 500; margin-top: 1px; }
-.channel-row .info .epg-next { font-size: 10px; color: #555; margin-top: 1px; }
+.channel-row .info .epg .now { color: #4ecdc4; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.channel-row .info .epg .next { color: #777; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .channel-row .fav-btn { background: none; border: none; color: #555; font-size: 14px; cursor: pointer; padding: 4px 8px; transition: .1s; }
 .channel-row .fav-btn.active { color: #f1c40f; }
 
@@ -1062,11 +1062,16 @@ function parseXmltvTime(t) {
 }
 
 function getEPG(channelId) {
-  if (!channelId || !epgMap[channelId]) return { now: null, next: null };
+  if (!channelId || !epgMap[channelId]) return { now: null, next: [] };
   const list = epgMap[channelId];
   const nowMs = Date.now() / 1000;
   const now = list.find(e => e.start_timestamp <= nowMs && e.stop_timestamp > nowMs);
-  const next = now ? list.find(e => e !== now && e.start_timestamp > nowMs) : list[0];
+  const next = [];
+  for (const e of list) {
+    if (e !== now && e.start_timestamp > nowMs) next.push(e);
+    if (next.length >= 3) break;
+  }
+  if (!now && list.length) return { now: null, next: list.slice(0, 3) };
   return { now, next };
 }
 
@@ -1187,10 +1192,11 @@ function renderStreams(list) {
         const id = view === 'grid' ? `epgg-${sid}` : `epgl-${sid}`;
         const el = $(id);
         if (!el) return;
-        if (!now && !next) { el.innerHTML = ''; return; }
+        if (!now && !next.length) { el.innerHTML = ''; return; }
+        const fmt = ts => new Date(ts * 1000).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
         let h = '';
         if (now) h += `<div class="now">▶ ${now.title}</div>`;
-        if (next && next !== now) h += `<div class="next">⬇ ${next.title}</div>`;
+        next.forEach(p => { h += `<div class="next">${fmt(p.start_timestamp)} ${p.title}</div>`; });
         el.innerHTML = h;
       };
       updateEpg();
