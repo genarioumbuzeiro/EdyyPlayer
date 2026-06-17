@@ -63,9 +63,10 @@ body { font-family: 'Inter', sans-serif; background: #0c0c0f; color: #fff; overf
 .module-header.active .count { background: rgba(233,69,96,.15); color: var(--accent); }
 .module-body { max-height: 0; overflow: hidden; transition: max-height .2s ease; }
 .module-body.open { max-height: 2000px; }
-.cat-item { padding: 7px 14px 7px 48px; font-size: 12px; color: #666; cursor: pointer; border-radius: 8px; margin: 1px 4px; transition: .1s; }
+.cat-item { padding: 7px 14px 7px 48px; font-size: 12px; color: #666; cursor: pointer; border-radius: 8px; margin: 1px 4px; transition: .1s; display: flex; align-items: center; }
 .cat-item:hover { color: #aaa; background: rgba(255,255,255,.03); }
 .cat-item.active { color: var(--accent); background: rgba(233,69,96,.08); font-weight: 500; }
+.cat-item .count { margin-left: auto; background: rgba(255,255,255,.04); padding: 0 6px; border-radius: 4px; font-size: 10px; color: #555; }
 .fav-header { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; font-size: 13px; color: #888; border-radius: 10px; transition: .15s; margin: 4px 0 2px; }
 .fav-header:hover { background: rgba(255,255,255,.04); color: #fff; }
 .fav-header.active { background: rgba(233,69,96,.12); color: var(--accent); font-weight: 600; }
@@ -997,7 +998,11 @@ function buildNav() {
     return `<div class="module-header ${a?'active':''}" tabindex="0" onclick="setType('${m.k}')">${m.i} ${m.l}<span class="count">${cnt}</span></div>
       <div class="module-body ${a?'open':''}">
         <div class="cat-item ${a&&!catId?'active':''}" tabindex="0" onclick="${a ? "setCat(null)" : "setType('"+m.k+"');setCat(null)"}">Todos</div>
-        ${c.filter(x => !isHiddenContent(x)).map(x => `<div class="cat-item ${a&&catId==x.category_id?'active':''}" tabindex="0" onclick="${a ? "setCat("+x.category_id+")" : "setType('"+m.k+"');setCat("+x.category_id+")"}">${x.category_name}</div>`).join('')}
+        ${c.filter(x => !isHiddenContent(x)).map(x => {
+          const sub = m.k === 'series' ? series : (streams[m.k]||[]);
+          const subCnt = sub.filter(s => s.category_id == x.category_id).length;
+          return `<div class="cat-item ${a&&catId==x.category_id?'active':''}" tabindex="0" onclick="${a ? "setCat("+x.category_id+")" : "setType('"+m.k+"');setCat("+x.category_id+")"}">${x.category_name}<span class="count">${subCnt}</span></div>`;
+        }).join('')}
       </div>`;
   }).concat(favCount ? `<div class="fav-header ${showingFavs?'active':''}" tabindex="0" onclick="showFavs()">⭐ Favoritos<span class="count">${favCount}</span></div>` : '').join('');
   nav.innerHTML = html;
