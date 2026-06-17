@@ -354,7 +354,7 @@ function setContent(el, html) {
   if (!html || html === _lastHtml) return;
   _lastHtml = html;
   const target = typeof el === 'string' ? $(el) : el;
-  if (target) requestAnimationFrame(() => { target.innerHTML = html; });
+  if (target) target.innerHTML = html;
 }
 // ── Favorites Set cache (O(1) lookups) ──
 let _favSet = null;
