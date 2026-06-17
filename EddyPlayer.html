@@ -1060,9 +1060,22 @@ function parseXmltvTime(t) {
   return localEpoch;
 }
 
-function getEPG(channelId) {
-  if (!channelId || !epgMap[channelId]) return { now: null, next: [] };
-  const list = epgMap[channelId];
+let _epgNameCache = {};
+function getEPG(channelId, channelName) {
+  let list = epgMap[channelId];
+  if (!list && channelName) {
+    const cached = _epgNameCache[channelId];
+    if (cached && epgMap[cached]) list = epgMap[cached];
+    else {
+      const norm = normalizeStr(channelName);
+      const found = Object.keys(epgMap).find(k => {
+        const kn = normalizeStr(k);
+        return kn === norm || kn.includes(norm) || norm.includes(kn) || kn.replace(/[^a-z0-9]/g,'') === norm.replace(/[^a-z0-9]/g,'');
+      });
+      if (found) { _epgNameCache[channelId] = found; list = epgMap[found]; }
+    }
+  }
+  if (!list) return { now: null, next: [] };
   const nowMs = Date.now() / 1000;
   const now = list.find(e => e.start_timestamp <= nowMs && e.stop_timestamp > nowMs);
   const next = [];
@@ -1165,7 +1178,7 @@ function renderStreams(list) {
     const cid = s.epg_channel_id || sid;
     let nameLabel = s.name;
     if (isLive && epgDone) {
-      const ep = getEPG(cid);
+      const ep = getEPG(cid, s.name);
       if (ep.now) nameLabel = `${s.name} <span class="epg-now">▶ ${ep.now.title}</span>`;
     }
     if (view === 'grid') {
@@ -1192,7 +1205,7 @@ function renderStreams(list) {
       const sid = s._id || s.stream_id;
       const cid = s.epg_channel_id || sid;
       const updateEpg = () => {
-        const ep = getEPG(cid);
+        const ep = getEPG(cid, s.name);
         const h3 = document.querySelector(`[data-sid="${sid}"] h3`);
         if (!h3) return;
         h3.innerHTML = ep.now ? `${s.name} <span class="epg-now">▶ ${ep.now.title}</span>` : s.name || '';
@@ -1380,7 +1393,7 @@ function openInlinePlayer(title, urls) {
   // Show EPG in inline player
   if (currentStreamInfo) {
     const cid = currentStreamInfo.epg_channel_id || currentStreamInfo.stream_id;
-    const {now, next} = getEPG(cid);
+    const {now, next} = getEPG(cid, currentStreamInfo.name);
     const fmt = ts => new Date(ts * 1000).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
     $('ipNow').textContent = now ? `▶ ${now.title}` : '';
     $('ipNext').innerHTML = next.length ? next.map(p => `<div>${fmt(p.start_timestamp)} ${p.title}</div>`).join('') : '';
@@ -1521,7 +1534,7 @@ function showEpgOverlay() {
   if (!epg) return;
   if (currentStreamInfo) {
     const cid = currentStreamInfo.epg_channel_id || currentStreamInfo.stream_id;
-    const {now, next} = getEPG(cid);
+    const {now, next} = getEPG(cid, currentStreamInfo.name);
     const fmt = ts => new Date(ts * 1000).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
     $('pepgName').textContent = currentStreamInfo.name;
     $('pepgNow').textContent = now ? `▶ ${now.title}` : 'Sem programação no momento';
