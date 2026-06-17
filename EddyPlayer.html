@@ -106,9 +106,7 @@ body { font-family: 'Inter', sans-serif; background: #0c0c0f; color: #fff; overf
 .channel-card .fav-btn { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.5); border: none; color: #fff; font-size: 14px; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: .15s; z-index: 1; }
 .channel-card:hover .fav-btn { opacity: 1; }
 .channel-card .fav-btn.active { opacity: 1; color: #f1c40f; }
-.channel-card .epg { padding: 6px 10px; font-size: 10px; color: #aaa; background: rgba(0,0,0,.6); position: absolute; bottom: 0; left: 0; right: 0; z-index: 1; max-height: 45%; overflow: hidden; }
-.channel-card .epg .now { color: #4ecdc4; font-weight: 600; }
-.channel-card .epg .next { color: #777; font-size: 11px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 
 .channel-list { display: flex; flex-direction: column; gap: 4px; }
 
@@ -133,9 +131,7 @@ body { font-family: 'Inter', sans-serif; background: #0c0c0f; color: #fff; overf
 .channel-row .info { flex: 1; min-width: 0; }
 .channel-row .info h3 { font-size: 13px; font-weight: 500; }
 .channel-row .info span { font-size: 11px; color: #666; }
-.channel-row .info .epg { font-size: 11px; margin-top: 2px; }
-.channel-row .info .epg .now { color: #4ecdc4; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.channel-row .info .epg .next { color: #777; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .channel-row .fav-btn { background: none; border: none; color: #555; font-size: 14px; cursor: pointer; padding: 4px 8px; transition: .1s; }
 .channel-row .fav-btn.active { color: #f1c40f; }
 
@@ -1164,18 +1160,23 @@ function renderStreams(list) {
   const card = (s, fn) => {
     const fav = isFav(s._type || type, s._id || s.stream_id);
     const sid = s._id || s.stream_id;
+    const cid = s.epg_channel_id || sid;
+    let nameLabel = s.name;
+    if (isLive && epgDone) {
+      const ep = getEPG(cid);
+      if (ep.now) nameLabel = `▶ ${ep.now.title} - ${s.name}`;
+    }
     if (view === 'grid') {
       const rating = s.rating_5based ? `<div class="rating">★ ${Number(s.rating_5based).toFixed(1)}</div>` : '';
-      return `<div class="channel-card" onclick="${fn}" tabindex="0">
+      return `<div class="channel-card" data-sid="${sid}" onclick="${fn}" tabindex="0">
         <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('${s._type||type}',${sid})">${fav?'⭐':'☆'}</button>
         <img src="${imgUrl(s)}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
-        <div class="card-overlay">${rating}<h3>${s.name}</h3>${isLive?'':''}</div>
-        ${isLive ? `<div class="epg" id="epgg-${sid}"></div>` : ''}
+        <div class="card-overlay">${rating}<h3>${nameLabel}</h3></div>
       </div>`;
     }
-    return `<div class="channel-row" tabindex="0" onclick="${fn}">
+    return `<div class="channel-row" data-sid="${sid}" tabindex="0" onclick="${fn}">
       <img src="${imgUrl(s)}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
-      <div class="info"><h3>${s.name}</h3>${isLive ? `<div class="epg" id="epgl-${sid}"></div>` : `<span>${s.category_name||''}</span>`}</div>
+      <div class="info"><h3>${nameLabel}</h3>${!isLive ? `<span>${s.category_name||''}</span>` : ''}</div>
       <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('${s._type||type}',${sid})">${fav?'⭐':'☆'}</button>
     </div>`;
   };
@@ -1189,16 +1190,10 @@ function renderStreams(list) {
       const sid = s._id || s.stream_id;
       const cid = s.epg_channel_id || sid;
       const updateEpg = () => {
-        const {now, next} = getEPG(cid);
-        const id = view === 'grid' ? `epgg-${sid}` : `epgl-${sid}`;
-        const el = $(id);
-        if (!el) return;
-        if (!now && !next.length) { el.innerHTML = ''; return; }
-        const fmt = ts => new Date(ts * 1000).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-        let h = '';
-        if (now) h += `<div class="now">▶ ${now.title}</div>`;
-        next.forEach(p => { h += `<div class="next">${fmt(p.start_timestamp)} ${p.title}</div>`; });
-        el.innerHTML = h;
+        const ep = getEPG(cid);
+        const h3 = document.querySelector(`[data-sid="${sid}"] h3`);
+        if (!h3) return;
+        h3.textContent = ep.now ? `▶ ${ep.now.title} - ${s.name}` : s.name || '';
       };
       updateEpg();
       if (!epgDone) onEPGReady(updateEpg);
