@@ -219,6 +219,30 @@ body { font-family: 'Inter', sans-serif; background: #0c0c0f; color: #fff; overf
 .hamburger { display: none; background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px; }
 
 .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; z-index: 2000; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.epg-grid-overlay { position: fixed; inset: 0; background: #0c0c0f; z-index: 1100; display: flex; flex-direction: column; }
+.epg-grid-header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #121216; border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0; }
+.epg-grid-header h2 { font-size: 16px; font-weight: 700; flex: 1; }
+.epg-grid-body { flex: 1; display: flex; overflow: hidden; position: relative; }
+.epg-channel-col { width: 160px; flex-shrink: 0; overflow: hidden; border-right: 1px solid rgba(255,255,255,.06); }
+.epg-channel-col .label { padding: 8px 12px; font-size: 12px; font-weight: 600; color: #888; border-bottom: 1px solid rgba(255,255,255,.04); height: 48px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.epg-channel-col .label.active { color: var(--accent); background: rgba(233,69,96,.08); }
+.epg-timeline-wrap { flex: 1; overflow: auto; position: relative; }
+.epg-timeline-header { display: flex; height: 32px; flex-shrink: 0; position: sticky; top: 0; z-index: 2; background: #121216; border-bottom: 1px solid rgba(255,255,255,.06); }
+.epg-hour { flex-shrink: 0; width: 100px; border-right: 1px solid rgba(255,255,255,.04); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #666; font-weight: 600; }
+.epg-row { position: relative; height: 48px; border-bottom: 1px solid rgba(255,255,255,.04); }
+.epg-row:hover { background: rgba(255,255,255,.02); }
+.epg-program { position: absolute; top: 4px; bottom: 4px; border-radius: 4px; padding: 4px 8px; font-size: 11px; overflow: hidden; cursor: pointer; border-left: 3px solid var(--accent); background: rgba(233,69,96,.12); color: #ddd; transition: .15s; }
+.epg-program:hover { background: rgba(233,69,96,.25); z-index: 1; }
+.epg-program .epg-title { font-weight: 600; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.epg-program .epg-time { font-size: 9px; color: #888; margin-top: 1px; }
+.epg-now-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 3; pointer-events: none; }
+.epg-now-line::before { content: ''; position: absolute; top: -4px; left: -4px; width: 10px; height: 10px; background: var(--accent); border-radius: 50%; }
+.epg-channel-filter { display: flex; gap: 6px; padding: 8px 20px; background: rgba(255,255,255,.02); flex-wrap: wrap; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+.epg-channel-filter button { padding: 4px 14px; background: rgba(255,255,255,.04); border: none; border-radius: 6px; color: #888; font-size: 11px; cursor: pointer; transition: .15s; }
+.epg-channel-filter button.active { background: rgba(233,69,96,.15); color: var(--accent); font-weight: 600; }
+.epg-channel-filter button:hover:not(.active) { color: #aaa; background: rgba(255,255,255,.06); }
+.tv-card-lg .channel-card { min-height: 200px; }
+.tv-card-lg .row-card { flex: 0 0 200px; min-height: 280px; }
 @media (max-width: 768px) {
   .hamburger { display: block; }
   .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; width: 260px; z-index: 100; transition: left .25s; background: #121216; }
@@ -293,6 +317,7 @@ body { font-family: 'Inter', sans-serif; background: #0c0c0f; color: #fff; overf
         <button class="view-btn" tabindex="0" onclick="setView('list')" id="vList">Lista</button>
         <button class="view-btn" tabindex="0" onclick="setView('row')" id="vRow">Fileiras</button>
         <button class="view-btn" tabindex="0" onclick="toggleSplit()" id="vSplit" title="Split view">⊞</button>
+        <button class="view-btn" tabindex="0" onclick="showEPGGrid()" id="vEpg" title="Guia de programação">📋 EPG</button>
       </div>
     </div>
     <div class="main-body" id="mainBody">
@@ -1042,6 +1067,62 @@ function getEPG(channelId) {
   return { now, next };
 }
 
+function showEPGGrid() {
+  const bd = document.createElement('div');
+  bd.className = 'epg-grid-overlay';
+  bd.innerHTML = `<div class="epg-grid-header"><h2>📋 Guia de Programação</h2><div class="epg-channel-filter" id="epgCatFilter"></div><button class="login-btn btn-secondary" style="flex-shrink:0" onclick="this.closest('.epg-grid-overlay').remove()">✕ Fechar</button></div><div class="epg-grid-body" id="epgGridBody"></div>`;
+  document.body.appendChild(bd);
+  renderEPGGrid();
+}
+
+function renderEPGGrid() {
+  const live = (streams.live||[]).filter(s => !isHiddenContent(s));
+  const cats = [...new Set(live.map(s => s.category_id))];
+  const body = $('epgGridBody');
+  if (!body) return;
+  let filterHtml = '<button class="active" data-cat="" onclick="document.querySelectorAll(\'#epgCatFilter button\').forEach(b=>b.classList.remove(\'active\'));this.classList.add(\'active\');renderEPGGrid()">Todas</button>';
+  (cats.live||[]).forEach(c => filterHtml += `<button data-cat="${c.category_id}" onclick="document.querySelectorAll('#epgCatFilter button').forEach(b=>b.classList.remove('active'));this.classList.add('active');renderEPGGrid()">${c.category_name}</button>`);
+  const f = $('epgCatFilter');
+  if (f) f.innerHTML = filterHtml;
+  const activeCat = f?.querySelector('.active')?.dataset.cat || '';
+  const channels = activeCat ? live.filter(s => s.category_id == activeCat) : live;
+  const nowMs = Date.now() / 1000;
+  const startTime = nowMs - 6 * 3600;
+  const endTime = nowMs + 12 * 3600;
+  const range = endTime - startTime;
+  const pxPerSec = 100 / 3600;
+  const totalPx = range * pxPerSec;
+  let html = `<div class="epg-channel-col">${channels.map(s => `<div class="label">${escapeHtml(s.name)}</div>`).join('')}</div><div class="epg-timeline-wrap" id="epgTimeline"><div class="epg-timeline-header">`;
+  for (let h = Math.floor(startTime / 3600) * 3600; h < endTime; h += 3600) {
+    const dt = new Date(h * 1000);
+    const label = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    html += `<div class="epg-hour">${label}</div>`;
+  }
+  html += '</div>';
+  channels.forEach(s => {
+    const cid = s.epg_channel_id || s.stream_id;
+    const list = epgMap[cid] || [];
+    html += `<div class="epg-row">`;
+    if (list.length) {
+      list.filter(p => p.stop_timestamp > startTime && p.start_timestamp < endTime).forEach(p => {
+        const left = Math.max(0, (p.start_timestamp - startTime) * pxPerSec);
+        const width = Math.min(totalPx, (p.stop_timestamp - p.start_timestamp) * pxPerSec) - 1;
+        if (width < 10) return;
+        const pStart = new Date(p.start_timestamp * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        html += `<div class="epg-program" style="left:${left}px;width:${width}px;${p.start_timestamp <= nowMs && p.stop_timestamp > nowMs ? 'background:rgba(233,69,96,.25);border-left-color:#f1c40f' : ''}" onclick="event.stopPropagation()" title="${escapeHtml(p.title)}"><div class="epg-title">${escapeHtml(p.title)}</div><div class="epg-time">${pStart}</div></div>`;
+      });
+    }
+    html += '</div>';
+  });
+  body.innerHTML = html;
+  const tl = $('epgTimeline');
+  if (tl) {
+    const nowOffset = (nowMs - startTime) * pxPerSec;
+    tl.innerHTML += `<div class="epg-now-line" style="left:${nowOffset}px"></div>`;
+    tl.scrollLeft = Math.max(0, nowOffset - tl.clientWidth / 2);
+  }
+}
+
 // ── Render ──
 function render() {
   const q = $('searchInput').value.toLowerCase();
@@ -1692,7 +1773,7 @@ if (isTV && localStorage.getItem('zyx_native_player') === null) {
 if (isTV || window.innerWidth < 1024) {
   document.body.classList.add('tv-mode');
   const s = document.createElement('style');
-  s.textContent = '.tv-mode *:focus{outline:3px solid #e94560!important;outline-offset:3px;border-radius:4px}.tv-mode [tabindex]:focus{outline-offset:2px}';
+  s.textContent = '.tv-mode *:focus{outline:3px solid #e94560!important;outline-offset:3px;border-radius:4px;box-shadow:0 0 20px rgba(233,69,96,.3)}.tv-mode [tabindex]:focus{outline-offset:2px}.tv-mode .channel-card{min-height:180px}.tv-mode .row-card{flex:0 0 180px;min-height:250px}.tv-mode .module-header,.tv-mode .cat-item,.tv-mode .fav-header{padding:14px 16px;font-size:14px}.tv-mode .channel-row{padding:12px 16px}.tv-mode .channel-row img{width:44px;height:44px}.tv-mode .content{padding:24px}.tv-mode .topbar{padding:16px 24px}.tv-mode .login-btn{padding:16px;font-size:17px}.tv-mode .sidebar-user{padding:18px 20px}';
   document.head.appendChild(s);
   setTimeout(() => {
     const f = document.querySelector('input, button, select, [tabindex]');
@@ -1714,6 +1795,8 @@ document.addEventListener('keydown', e => {
       document.activeElement.value = ''; document.activeElement.dispatchEvent(new Event('input')); return;
     }
     e.preventDefault();
+    const epgGrid = document.querySelector('.epg-grid-overlay');
+    if (epgGrid) { epgGrid.remove(); return; }
     if (isPlayer) { closePlayer(); return; }
     const modals = ['settingsModal','adminModal','seriesModal','epgModal','pinModal','channelInfo'];
     for (const id of modals) {
@@ -1734,8 +1817,10 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // Escape closes modal or player
+  // Escape closes modal, EPG grid or player
   if (e.key === 'Escape') {
+    const epg = document.querySelector('.epg-grid-overlay');
+    if (epg) { epg.remove(); return; }
     const backdrop = document.querySelector('.modal-backdrop');
     if (backdrop) { backdrop.remove(); return; }
     if (isPlayer) { e.preventDefault(); closePlayer(); return; }
