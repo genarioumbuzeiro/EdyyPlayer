@@ -1651,13 +1651,6 @@ function toggleEpgOverlay() {
 
 document.addEventListener('keydown', e => {
   const tvMode = document.body.classList.contains('tv-mode');
-  // TV mode: Space/MediaPlayPause toggles video play/pause
-  if (tvMode && !$('playerOverlay').classList.contains('hidden') && (e.key === ' ' || e.key === 'MediaPlayPause')) {
-    e.preventDefault();
-    const v = $('playerVideo');
-    if (v) { if (v.paused) v.play(); else v.pause(); }
-    return;
-  }
   if (e.key === 'Escape' && !$('playerOverlay').classList.contains('hidden')) {
     e.preventDefault();
     if (!tvMode) closePlayer();
