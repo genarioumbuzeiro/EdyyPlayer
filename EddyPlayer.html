@@ -1175,8 +1175,25 @@ function imgUrl(s, field) {
   return `${srv.replace(/\/+$/, '')}/pictures/${val}`;
 }
 
+let _imgObs = null;
+function observeLazyImages(container) {
+  if (!_imgObs) {
+    _imgObs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          if (img.dataset.src) { img.src = img.dataset.src; img.removeAttribute('data-src'); }
+          _imgObs.unobserve(img);
+        }
+      });
+    }, { rootMargin: '300px' });
+  }
+  container.querySelectorAll('img[data-src]').forEach(img => _imgObs.observe(img));
+}
+
 function renderStreams(list) {
   const isLive = type === 'live' && !showingFavs;
+  const imgPlh = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 150'%3E%3Crect fill='%23222228' width='100' height='150'/%3E%3C/svg%3E";
   const card = (s, fn) => {
     const fav = isFav(s._type || type, s._id || s.stream_id);
     const sid = s._id || s.stream_id;
@@ -1186,26 +1203,27 @@ function renderStreams(list) {
       const ep = getEPG(cid, s.name);
       if (ep.now) nameLabel = `${s.name} <span class="epg-now">▶ ${ep.now.title}</span>`;
     }
+    const imgUrl_s = imgUrl(s);
     if (view === 'grid') {
       const rating = s.rating_5based ? `<div class="rating">★ ${Number(s.rating_5based).toFixed(1)}</div>` : '';
       return `<div class="channel-card" data-sid="${sid}" onclick="${fn}" tabindex="0">
         <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('${s._type||type}',${sid})">${fav?'⭐':'☆'}</button>
-        <img src="${imgUrl(s)}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+        <img ${imgUrl_s ? `data-src="${imgUrl_s}"` : ''} src="${imgPlh}" loading="lazy" onerror="this.onerror=null;this.src='${imgPlh}'">
         <div class="card-overlay">${rating}<h3>${nameLabel}</h3></div>
       </div>`;
     }
     return `<div class="channel-row" data-sid="${sid}" tabindex="0" onclick="${fn}">
-      <img src="${imgUrl(s)}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+      <img ${imgUrl_s ? `data-src="${imgUrl_s}"` : ''} src="${imgPlh}" loading="lazy" onerror="this.onerror=null;this.src='${imgPlh}'">
       <div class="info"><h3>${nameLabel}</h3>${!isLive ? `<span>${s.category_name||''}</span>` : ''}</div>
       <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('${s._type||type}',${sid})">${fav?'⭐':'☆'}</button>
     </div>`;
   };
   const cls = view === 'grid' ? 'channel-grid' : 'channel-list';
   const filtered = list.filter(s => !isHiddenContent(s));
-  setContent('inner', filtered.length
-    ? `<div class="${cls}">${filtered.map(s => card(s, type==='live'?`playChannel(${s._id||s.stream_id})`:`showMovieInfo(${s._id||s.stream_id})`)).join('')}</div>`
-    : '<div class="loading">📭 Nenhum conteúdo encontrado</div>');
-  if (isLive) {
+  if (!filtered.length) { setContent('inner', '<div class="loading">📭 Nenhum conteúdo encontrado</div>'); return; }
+  const fnFor = s => type==='live' ? `playChannel(${s._id||s.stream_id})` : `showMovieInfo(${s._id||s.stream_id})`;
+  const doEpg = () => {
+    if (!isLive) return;
     list.forEach(s => {
       const sid = s._id || s.stream_id;
       const cid = s.epg_channel_id || sid;
@@ -1218,6 +1236,45 @@ function renderStreams(list) {
       updateEpg();
       if (!epgDone) onEPGReady(updateEpg);
     });
+  };
+  const onDone = container => {
+    observeLazyImages(container);
+    refreshNavCache(); focusFirstCardInContent();
+    doEpg();
+  };
+  if (filtered.length > 80) {
+    _lastHtml = '';
+    let grid = document.querySelector(`#inner .${cls}`);
+    if (!grid) { $('inner').innerHTML = `<div class="${cls}"></div>`; grid = $('inner').firstElementChild; }
+    else grid.innerHTML = '';
+    let i = 0;
+    const next = () => {
+      const end = Math.min(i + 60, filtered.length);
+      let h = '';
+      for (; i < end; i++) h += card(filtered[i], fnFor(filtered[i]));
+      grid.insertAdjacentHTML('beforeend', h);
+      if (i < filtered.length) requestAnimationFrame(next);
+      else onDone(grid);
+    };
+    requestAnimationFrame(next);
+  } else {
+    setContent('inner', `<div class="${cls}">${filtered.map(s => card(s, fnFor(s))).join('')}</div>`);
+    observeLazyImages($('inner'));
+    if (isLive) {
+      list.forEach(s => {
+        const sid = s._id || s.stream_id;
+        const cid = s.epg_channel_id || sid;
+        const updateEpg = () => {
+          const ep = getEPG(cid, s.name);
+          const h3 = document.querySelector(`[data-sid="${sid}"] h3`);
+          if (!h3) return;
+          h3.innerHTML = ep.now ? `${s.name} <span class="epg-now">▶ ${ep.now.title}</span>` : s.name || '';
+        };
+        updateEpg();
+        if (!epgDone) onEPGReady(updateEpg);
+      });
+    }
+    refreshNavCache(); focusFirstCardInContent();
   }
 }
 
@@ -1235,27 +1292,48 @@ function updateFavButtons() {
 
 function renderSeries(list) {
   const escape = s => (s||'').replace(/'/g, "\\'");
+  const imgPlh = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 150'%3E%3Crect fill='%23222228' width='100' height='150'/%3E%3C/svg%3E";
   const card = (s, fn) => {
     const fav = isFav('series', s.series_id);
+    const imgUrl_s = imgUrl(s, 'cover');
     if (view === 'grid') {
       const rating = s.rating_5based ? `<div class="rating">★ ${Number(s.rating_5based).toFixed(1)}</div>` : '';
       return `<div class="channel-card" onclick="${fn}" tabindex="0">
         <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('series',${s.series_id})">${fav?'⭐':'☆'}</button>
-        <img src="${imgUrl(s,'cover')}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+        <img ${imgUrl_s ? `data-src="${imgUrl_s}"` : ''} src="${imgPlh}" loading="lazy" onerror="this.onerror=null;this.src='${imgPlh}'">
         <div class="card-overlay">${rating}<h3>${s.name}</h3></div>
       </div>`;
     }
     return `<div class="channel-row" tabindex="0" onclick="${fn}">
-      <img src="${imgUrl(s,'cover')}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 150%27%3E%3Crect fill=%27%23222228%27 width=%27100%27 height=%27150%27/%3E%3Ctext x=%2750%27 y=%2790%27 text-anchor=%27middle%27 fill=%27%23555%27 font-size=%2736%27%3E▶%3C/text%3E%3C/svg%3E'">
+      <img ${imgUrl_s ? `data-src="${imgUrl_s}"` : ''} src="${imgPlh}" loading="lazy" onerror="this.onerror=null;this.src='${imgPlh}'">
       <div class="info"><h3>${s.name}</h3><span>${s.year||s.category_name||''}</span></div>
       <button class="fav-btn ${fav?'active':''}" onclick="event.stopPropagation();toggleFav('series',${s.series_id})">${fav?'⭐':'☆'}</button>
     </div>`;
   };
   const cls = view === 'grid' ? 'channel-grid' : 'channel-list';
   const filtered = list.filter(s => !isHiddenContent(s));
-  setContent('inner', filtered.length
-    ? `<div class="${cls}">${filtered.map(s => card(s, `showSeries('${s.series_id}','${escape(s.name)}')`)).join('')}</div>`
-    : '<div class="loading">📭 Nenhum conteúdo encontrado</div>');
+  if (!filtered.length) { setContent('inner', '<div class="loading">📭 Nenhum conteúdo encontrado</div>'); return; }
+  const fnFor = s => `showSeries('${s.series_id}','${escape(s.name)}')`;
+  const onDone = container => observeLazyImages(container);
+  if (filtered.length > 80) {
+    _lastHtml = '';
+    let grid = document.querySelector(`#inner .${cls}`);
+    if (!grid) { $('inner').innerHTML = `<div class="${cls}"></div>`; grid = $('inner').firstElementChild; }
+    else grid.innerHTML = '';
+    let i = 0;
+    const next = () => {
+      const end = Math.min(i + 60, filtered.length);
+      let h = '';
+      for (; i < end; i++) h += card(filtered[i], fnFor(filtered[i]));
+      grid.insertAdjacentHTML('beforeend', h);
+      if (i < filtered.length) requestAnimationFrame(next);
+      else onDone(grid);
+    };
+    requestAnimationFrame(next);
+  } else {
+    setContent('inner', `<div class="${cls}">${filtered.map(s => card(s, fnFor(s))).join('')}</div>`);
+    onDone($('inner'));
+  }
 }
 
 // ── Movie info modal ──
@@ -1745,7 +1823,7 @@ if (isTV && localStorage.getItem('zyx_native_player') === null) {
 if (isTV || window.innerWidth < 1024) {
   document.body.classList.add('tv-mode');
   const s = document.createElement('style');
-  s.textContent = '.tv-mode *:focus{outline:3px solid #e94560!important;outline-offset:3px;border-radius:4px;box-shadow:0 0 20px rgba(233,69,96,.3)}.tv-mode [tabindex]:focus{outline-offset:2px}.tv-mode .channel-card{min-height:180px}.tv-mode .row-card{flex:0 0 180px;min-height:250px}.tv-mode .module-header,.tv-mode .cat-item,.tv-mode .fav-header{padding:14px 16px;font-size:14px}.tv-mode .channel-row{padding:12px 16px}.tv-mode .channel-row img{width:44px;height:44px}.tv-mode .content{padding:24px}.tv-mode .topbar{padding:16px 24px}.tv-mode .login-btn{padding:16px;font-size:17px}.tv-mode .sidebar-user{padding:18px 20px}';
+  s.textContent = '.tv-mode *:focus{outline:3px solid #e94560!important;outline-offset:3px;border-radius:4px;box-shadow:0 0 20px rgba(233,69,96,.3)}.tv-mode [tabindex]:focus{outline-offset:2px}.tv-mode .channel-card{min-height:180px;transition:none!important}.tv-mode .row-card{flex:0 0 180px;min-height:250px;transition:none!important}.tv-mode .module-header,.tv-mode .cat-item,.tv-mode .fav-header{padding:14px 16px;font-size:14px}.tv-mode .channel-row{padding:12px 16px;transition:none!important}.tv-mode .channel-row img{width:44px;height:44px}.tv-mode .content{padding:24px}.tv-mode .topbar{padding:16px 24px}.tv-mode .login-btn{padding:16px;font-size:17px;transition:none!important}.tv-mode .sidebar-user{padding:18px 20px}.tv-mode *{animation:none!important}.tv-mode .channel-card:hover,.tv-mode .row-card:hover{transform:none!important;border-color:transparent!important}';
   document.head.appendChild(s);
   setTimeout(() => {
     const f = document.querySelector('input, button, select, [tabindex]');
