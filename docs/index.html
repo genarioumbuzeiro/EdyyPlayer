@@ -332,6 +332,7 @@ let cats = {}, streams = {}, series = [];
 let type = 'live', view = localStorage.getItem('zyx_view') || 'grid', catId = null, hls = null, showingFavs = false;
 let wakeLock = null;
 let loginMode = 'xtream', m3uEpgUrl = '';
+let menuTimer = null, menuVisible = true;
 const CACHE = {}, EPG_CACHE = {};
 const MODS = [
   { k: 'live', i: '📡', l: 'Ao Vivo' },
@@ -1572,6 +1573,10 @@ function openPlayer(title, urls, idx) {
   $('playerTitle').textContent = title;
   $('playerOverlay').classList.remove('hidden');
   requestWakeLock();
+  if (document.body.classList.contains('tv-mode')) {
+    document.body.classList.add('playing');
+    showMenu();
+  }
   const wrap = $('playerVideoWrap');
   wrap.innerHTML = '<video id="playerVideo" controls playsinline webkit-playsinline></video>';
   const v = $('playerVideo');
@@ -1645,12 +1650,16 @@ function toggleEpgOverlay() {
 }
 
 document.addEventListener('keydown', e => {
+  const tvMode = document.body.classList.contains('tv-mode');
   if (e.key === 'Escape' && !$('playerOverlay').classList.contains('hidden')) {
     e.preventDefault();
-    closePlayer();
+    if (!tvMode) closePlayer();
     return;
   }
-  if (!$('playerOverlay').classList.contains('hidden')) return;
+  if (!$('playerOverlay').classList.contains('hidden')) {
+    if (tvMode && !menuVisible) { showMenu(); }
+    return;
+  }
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
     if (!_cachedCards.length) return;
@@ -1676,9 +1685,32 @@ $('closePlayerBtn').addEventListener('click', function(e) {
   closePlayer();
 });
 
+// ── TV Menu Overlay ──
+function showMenu() {
+  if (!document.body.classList.contains('playing')) return;
+  document.body.classList.remove('menu-hidden');
+  menuVisible = true;
+  resetMenuTimer();
+}
+function hideMenu() {
+  if (!document.body.classList.contains('playing')) return;
+  document.body.classList.add('menu-hidden');
+  menuVisible = false;
+  clearTimeout(menuTimer);
+}
+function toggleMenu() {
+  if (menuVisible) hideMenu(); else showMenu();
+}
+function resetMenuTimer() {
+  clearTimeout(menuTimer);
+  menuTimer = setTimeout(() => { if (!document.body.classList.contains('playing')) return; hideMenu(); }, 6000);
+}
+
 function closePlayer() {
   closingPlayer = true;
   $('playerOverlay').classList.add('hidden');
+  document.body.classList.remove('playing', 'menu-hidden');
+  clearTimeout(menuTimer); menuVisible = true;
   if (hls) { hls.destroy(); hls = null; }
   releaseWakeLock();
   const wrap = $('playerVideoWrap');
@@ -1823,13 +1855,18 @@ if (isTV && localStorage.getItem('zyx_native_player') === null) {
 if (isTV || window.innerWidth < 1024) {
   document.body.classList.add('tv-mode');
   const s = document.createElement('style');
-  s.textContent = '.tv-mode *:focus{outline:3px solid #e94560!important;outline-offset:3px;border-radius:4px;box-shadow:0 0 20px rgba(233,69,96,.3)}.tv-mode [tabindex]:focus{outline-offset:2px}.tv-mode .channel-card{min-height:180px;transition:none!important}.tv-mode .row-card{flex:0 0 180px;min-height:250px;transition:none!important}.tv-mode .module-header,.tv-mode .cat-item,.tv-mode .fav-header{padding:14px 16px;font-size:14px}.tv-mode .channel-row{padding:12px 16px;transition:none!important}.tv-mode .channel-row img{width:44px;height:44px}.tv-mode .content{padding:24px}.tv-mode .topbar{padding:16px 24px}.tv-mode .login-btn{padding:16px;font-size:17px;transition:none!important}.tv-mode .sidebar-user{padding:18px 20px}.tv-mode *{animation:none!important}.tv-mode .channel-card:hover,.tv-mode .row-card:hover{transform:none!important;border-color:transparent!important}';
+  s.textContent = '.tv-mode *:focus{outline:3px solid #e94560!important;outline-offset:3px;border-radius:4px;box-shadow:0 0 20px rgba(233,69,96,.3)}.tv-mode [tabindex]:focus{outline-offset:2px}.tv-mode .channel-card{min-height:180px;transition:none!important}.tv-mode .row-card{flex:0 0 180px;min-height:250px;transition:none!important}.tv-mode .module-header,.tv-mode .cat-item,.tv-mode .fav-header{padding:14px 16px;font-size:14px}.tv-mode .channel-row{padding:12px 16px;transition:none!important}.tv-mode .channel-row img{width:44px;height:44px}.tv-mode .content{padding:24px}.tv-mode .topbar{padding:16px 24px}.tv-mode .login-btn{padding:16px;font-size:17px;transition:none!important}.tv-mode .sidebar-user{padding:18px 20px}.tv-mode *{animation:none!important}.tv-mode .channel-card:hover,.tv-mode .row-card:hover{transform:none!important;border-color:transparent!important}.tv-mode.playing #app{position:relative;z-index:1001;background:rgba(0,0,0,.55);transition:opacity .4s,background .4s}.tv-mode.playing.menu-hidden #app{opacity:0;pointer-events:none;background:transparent}.tv-mode.playing #app .content{overflow:hidden}.tv-mode.playing.menu-hidden #app .content{overflow-y:auto}';
   document.head.appendChild(s);
   setTimeout(() => {
     const f = document.querySelector('input, button, select, [tabindex]');
     if (f && !f.matches('.btn-admin-login')) f.focus();
   }, 300);
 }
+
+// ── TV Menu activity tracking ──
+function onActivity() { if (document.body.classList.contains('playing')) { showMenu(); } }
+document.addEventListener('mousemove', onActivity, { passive: true });
+document.addEventListener('touchstart', onActivity, { passive: true });
 
 document.addEventListener('keydown', e => {
   const isTvMode = document.body.classList.contains('tv-mode');
@@ -1845,7 +1882,7 @@ document.addEventListener('keydown', e => {
       document.activeElement.value = ''; document.activeElement.dispatchEvent(new Event('input')); return;
     }
     e.preventDefault();
-    if (isPlayer) { closePlayer(); return; }
+    if (isPlayer) { if (isTvMode) { toggleMenu(); return; } closePlayer(); return; }
     const modals = ['settingsModal','adminModal','seriesModal','epgModal','pinModal','channelInfo'];
     for (const id of modals) {
       const el = document.getElementById(id);
@@ -1865,13 +1902,17 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // Escape closes modal or player
+  // Escape closes modal or toggles TV menu
   if (e.key === 'Escape') {
     const backdrop = document.querySelector('.modal-backdrop');
     if (backdrop) { backdrop.remove(); return; }
-    if (isPlayer) { e.preventDefault(); closePlayer(); return; }
+    if (isPlayer) {
+      e.preventDefault();
+      if (isTvMode) { toggleMenu(); return; }
+      closePlayer(); return;
+    }
   }
-  if (isPlayer) return;
+  if (isPlayer && !(isTvMode && menuVisible)) return;
 
   // Enter / Space triggers click on focused element
   if (e.key === 'Enter' || e.key === ' ') {
@@ -1919,7 +1960,7 @@ document.addEventListener('keydown', e => {
     }
     // Main panel navigation
     const po = $('playerOverlay');
-    if (po && !po.classList.contains('hidden')) return;
+    if (po && !po.classList.contains('hidden') && !isTvMode) return;
     e.preventDefault();
     const active = document.activeElement;
     const sidebarEls = document.querySelectorAll('.module-header, .cat-item, .fav-header');
